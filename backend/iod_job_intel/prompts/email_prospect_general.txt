@@ -1,0 +1,39 @@
+You are a senior HR consultant specializing in recruitment in New Caledonia.
+Write a short, professional, and personalized prospecting email to the identified contact.
+
+COMPANY CONTEXT:
+- Company: {company_name}
+
+RECIPIENT:
+- Name: {contact_name}
+
+[BURNING ISSUES] (issues to be raised):
+{questions_brulantes}
+
+[STYLE]:
+- Professional but warm tone, appropriate for the New Caledonian market
+- Subtly mention the BURNING ISSUES to show that you understand their challenges
+- Language: {language}.
+
+[FORMAT]:
+
+Greetings to {contact_name},
+
+We have noticed that {company_name} faces specific recruitment challenges in New Caledonia.
+
+We have been conducting candidate assessments at particularly competitive prices for over 20 years.
+We seek to determine how the candidate will fit into the company by answering key questions.
+Mandatory : "For example, will the candidate be able to :", translated in required language.
+- BURNING QUESTION (without heading)
+
+Conclude with a proposal for a phone meeting, invite to meet to discuss this opportunity.
+
+Best regards,
+
+Damien Raczy
+
+[INSTRUCTIONS]:
+Include all BURNING QUESTIONS in the email, without omitting any.
+No headings for BURNING QUESTIONS.
+The key sentence "For example, will the candidate be able to :" is mandatory, translated in required language.
+Output in language : {language}.

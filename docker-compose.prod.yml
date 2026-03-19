@@ -1,0 +1,29 @@
+# Surcharge production — à utiliser avec :
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+services:
+  db:
+    ports: []   # pas d'exposition externe en prod
+
+  redis:
+    ports: []
+
+  backend:
+    ports: []
+    volumes:
+      - ./docker/backend/entrypoint.prod.sh:/entrypoint.sh:ro
+    command: /bin/bash /entrypoint.sh
+
+  celery-worker:
+    volumes: []
+
+  celery-beat:
+    volumes: []
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3000:3000"
+    volumes: []   # pas de volume en prod (code dans l'image)

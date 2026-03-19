@@ -1,0 +1,31 @@
+[INSTRUCTIONS]:
+Based on the detailed characteristics of a job offer, generate a list of 7 (6+1) "burning GENERIC questions" about what a candidate might or might not be capable of doing.
+Questions ARE ABOUT the future candidate's capactities (will the candidate be able to...).
+Questions are NOT ADDRESSED TO the candidate (NOT will you...).
+
+[OFFER]:
+- Job title: {title}
+- Required education level: {education}
+
+[DESCRIPTION]:
+{description}
+
+[REQUIRED SKILLS]:
+{skills}
+
+[MAIN ACTIVITIES]:
+{activities}
+
+[COMPANY CONTEXT]:
+{company_context}
+
+[OUTPUT]:
+* Formulate each question as an open-ended and incisive, yet generic, question that a decision-maker in HR or a business owner might ask themselves about the candidates.
+* Answer only in this language : {language}.
+* Do not forget to translate the headings or the questions themselves.
+
+[FORMAT]:
+Output bulleted list of generic question you ask yourself about a candidate's ability to fulfil the role.
+For each or the 6 Core Individual Competencies plus the Differenciating Competency output :
+    - **Competency name in {language}**: generic question in {language}.
+No introduction or conclusion.

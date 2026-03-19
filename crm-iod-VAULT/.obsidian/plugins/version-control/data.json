@@ -1,0 +1,120 @@
+{
+  "version": "1.9.44",
+  "databasePath": ".versiondb",
+  "noteIdFrontmatterKey": "vc-id",
+  "legacyNoteIdFrontmatterKeys": [],
+  "keyUpdatePathFilters": [],
+  "defaultExportFormat": "md",
+  "enableCompression": true,
+  "autoRegisterNotes": false,
+  "pathFilters": [],
+  "noteIdFormat": "{path}",
+  "versionIdFormat": "{timestamp}_{version}",
+  "centralManifest": {
+    "version": "1.0.0",
+    "notes": {
+      "To do_md": {
+        "notePath": "To do.md",
+        "manifestPath": ".versiondb/To do_md/manifest.json",
+        "createdAt": "2025-12-04T21:39:00.375Z",
+        "lastModified": "2025-12-04T21:39:00.375Z"
+      },
+      "00_Workflow_SMQ_IOD_md": {
+        "notePath": "01_DRAFT/00_Workflow_SMQ_IOD 1.md",
+        "manifestPath": ".versiondb/00_Workflow_SMQ_IOD_md/manifest.json",
+        "createdAt": "2025-12-04T21:40:05.068Z",
+        "lastModified": "2025-12-07T22:06:22.728Z"
+      },
+      "IOD_md": {
+        "notePath": "03_ARCHIVES/IOD.md",
+        "manifestPath": ".versiondb/IOD_md/manifest.json",
+        "createdAt": "2025-12-07T20:56:16.880Z",
+        "lastModified": "2025-12-08T03:55:03.391Z"
+      },
+      "02_PUBLIE_1.Stratégie_STRAT-001 Politique qualité et vision stratégique_md": {
+        "notePath": "02_PUBLIE/1.Stratégie/STRAT-001 Politique qualité et vision stratégique.md",
+        "manifestPath": ".versiondb/02_PUBLIE_1.Stratégie_STRAT-001 Politique qualité et vision stratégique_md/manifest.json",
+        "createdAt": "2025-12-14T22:28:13.908Z",
+        "lastModified": "2025-12-14T22:28:13.935Z"
+      },
+      "02_PUBLIE_1.Stratégie_STRAT-002 Cartographie des processus_md": {
+        "notePath": "02_PUBLIE/1.Stratégie/STRAT-002 Cartographie des processus.md",
+        "manifestPath": ".versiondb/02_PUBLIE_1.Stratégie_STRAT-002 Cartographie des processus_md/manifest.json",
+        "createdAt": "2025-12-14T22:54:21.371Z",
+        "lastModified": "2025-12-14T22:54:21.379Z"
+      },
+      "02_PUBLIE_3.Procédures_PROC-001 Gestion des documents_md": {
+        "notePath": "02_PUBLIE/3.Procédures/PROC-001 Gestion des documents.md",
+        "manifestPath": ".versiondb/02_PUBLIE_3.Procédures_PROC-001 Gestion des documents_md/manifest.json",
+        "createdAt": "2025-12-17T21:36:00.458Z",
+        "lastModified": "2025-12-17T21:36:00.477Z"
+      },
+      "02_PUBLIE_1.Stratégie_REF-002 Genèse et évolution du savoir organisationnel_md": {
+        "notePath": "02_PUBLIE/1.Stratégie/REF-002 Genèse et évolution du savoir organisationnel.md",
+        "manifestPath": ".versiondb/02_PUBLIE_1.Stratégie_REF-002 Genèse et évolution du savoir organisationnel_md/manifest.json",
+        "createdAt": "2025-12-18T02:59:50.849Z",
+        "lastModified": "2025-12-18T02:59:50.849Z"
+      },
+      "02_PUBLIE_1.Stratégie_REF-001_Code_deontologie_md": {
+        "notePath": "02_PUBLIE/1.Stratégie/REF-001_Code_deontologie.md",
+        "manifestPath": ".versiondb/02_PUBLIE_1.Stratégie_REF-001_Code_deontologie_md/manifest.json",
+        "createdAt": "2025-12-19T22:05:35.985Z",
+        "lastModified": "2025-12-19T22:05:36.068Z"
+      }
+    }
+  },
+  "versionHistorySettings": {
+    "maxVersionsPerNote": 10,
+    "autoCleanupOldVersions": false,
+    "autoCleanupDays": 60,
+    "useRelativeTimestamps": true,
+    "enableVersionNaming": true,
+    "enableVersionDescription": false,
+    "showDescriptionInList": false,
+    "isListView": false,
+    "renderMarkdownInPreview": true,
+    "enableWatchMode": false,
+    "watchModeInterval": 60,
+    "autoSaveOnSave": false,
+    "autoSaveOnSaveInterval": 2,
+    "enableMinLinesChangedCheck": false,
+    "minLinesChanged": 5,
+    "enableWordCount": false,
+    "includeMdSyntaxInWordCount": false,
+    "enableCharacterCount": false,
+    "includeMdSyntaxInCharacterCount": false,
+    "enableLineCount": false,
+    "includeMdSyntaxInLineCount": false,
+    "isGlobal": true,
+    "enableDiskPersistence": true,
+    "autoRegisterNotes": false,
+    "pathFilters": []
+  },
+  "editHistorySettings": {
+    "maxVersionsPerNote": 50,
+    "autoCleanupOldVersions": false,
+    "autoCleanupDays": 60,
+    "useRelativeTimestamps": true,
+    "enableVersionNaming": false,
+    "enableVersionDescription": false,
+    "showDescriptionInList": false,
+    "isListView": true,
+    "renderMarkdownInPreview": true,
+    "enableWatchMode": false,
+    "watchModeInterval": 60,
+    "autoSaveOnSave": false,
+    "autoSaveOnSaveInterval": 2,
+    "enableMinLinesChangedCheck": false,
+    "minLinesChanged": 5,
+    "enableWordCount": false,
+    "includeMdSyntaxInWordCount": false,
+    "enableCharacterCount": false,
+    "includeMdSyntaxInCharacterCount": false,
+    "enableLineCount": false,
+    "includeMdSyntaxInLineCount": false,
+    "isGlobal": true,
+    "enableDiskPersistence": true,
+    "autoRegisterNotes": false,
+    "pathFilters": []
+  }
+}

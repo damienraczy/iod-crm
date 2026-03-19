@@ -1,0 +1,6 @@
+Write a personalized introductory sentence (1 sentence) for a sales email.
+Context: You are an HR consultant contacting {company_name} regarding their job offer for a "{job_title}".
+
+The tone should be professional and empathetic, acknowledging their recent recruitment need.
+ONLY return the sentence, no preamble.
+Language: {language}.

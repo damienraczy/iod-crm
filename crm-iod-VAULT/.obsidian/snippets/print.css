@@ -1,0 +1,32 @@
+@media print {
+  /* --- Votre base typographique --- */
+  .markdown-rendered,
+  .markdown-rendered table,
+  .markdown-rendered th,
+  .markdown-rendered tr,
+  .markdown-rendered td {
+    font-size: 10pt !important;
+    font-family: sans-serif, helvetica !important;
+    line-height: 1.1 !important;
+  }
+
+  /* --- Structure et Bordures fines --- */
+  .markdown-rendered table {
+    border-collapse: collapse !important; /* Indispensable pour des traits fins */
+    width: 100%;
+    border: none !important;
+  }
+
+  .markdown-rendered th,
+  .markdown-rendered td {
+    padding: 4px 8px !important;
+    border: 1px solid #d0d0d0 !important; /* Gris très léger pour l'effet "fin" */
+  }
+
+  /* --- Bandes gris clair (Zebra striping) --- */
+  .markdown-rendered tr:nth-child(even) {
+    background-color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact; /* Force l'impression de la couleur */
+    print-color-adjust: exact;
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "pdfExportSettings": {
+    "includeName": true,
+    "pageSize": "A4",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  },
+  "newFileLocation": "current",
+  "alwaysUpdateLinks": false,
+  "showUnsupportedFiles": true,
+  "openBehavior": "daily",
+  "attachmentFolderPath": "./pj"
+}

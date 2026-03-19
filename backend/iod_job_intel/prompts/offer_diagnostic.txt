@@ -1,0 +1,16 @@
+You are a Senior HR Consultant and Recruitment Strategist.
+Critically analyze the following job offer and identify 3 specific ways to improve its attractiveness or clarity to attract top-tier candidates.
+
+Job Title: {title}
+Location: {location}
+Description: {description}
+Experience Required: {experience}
+Education Required: {education}
+
+Structure your response as follows:
+1. "Gaps identified": What is missing (e.g., salary, benefits, company culture, clear missions).
+2. "Optimization tips": 3 actionable tips to improve the wording or structure.
+3. "Consulting hook": A professional sentence to pitch a "Job Posting Audit" service to this employer.
+
+Language: {language}.
+ONLY return the diagnostic text, no preamble.

@@ -1,0 +1,89 @@
+/* Minimal - Resource */
+
+/* Pour l'affichage à l'écran */
+@media screen {
+  .markdown-source-view.mod-cm6 .cm-line, 
+  .markdown-rendered p {
+    text-align: justify;
+  }
+}
+
+/* Pour l'export PDF et l'impression */
+@media print {
+  p {
+    text-align: justify;
+  }
+}
+
+.theme-light {
+	/* Fonds : dégradés de vert très clair */
+	--background-primary: #fdfdfc;
+	--background-secondary: #fff0d2;
+	--background-secondary-alt: #f77d3b;
+
+    /* Window */
+    --titlebar-background: #f8a87c;
+    --titlebar-background-focused: #f77d3b;
+    --titlebar-border-width: thin;
+    --titlebar-border-color: #f2c7b0;
+    --titlebar-text-color: #fdfdfc;
+    --titlebar-text-color-focused: #fdfdfc;
+    --titlebar-text-weight: bold;
+    --header-height: 12;
+
+    /* Ribbon */
+    --ribbon-background: #f2c7b0;
+    --ribbon-background-collapsed: #f2c7b0;
+    --ribbon-width: 12 ;
+    --ribbon-padding : 1 ;
+  
+	/* Texte principal */
+	--text-normal: #2d3436;
+	--text-faint: #ad5858;
+	
+	/* Code : contraste doux */
+	--code-normal: #2e7d32;
+	--code-background: #f0f4f1;
+	  
+	/* Titres : palette organique harmonisée */
+	--h1-color: #761313;
+	--h2-color: #2c6d2f;
+	--h3-color: #2f3289;
+	--h4-color: #9f3891;
+	--h5-color: #7b1fa2;
+	--h6-color: #455a64;
+	      
+	/* Tableaux : grisés froids pour le contraste */
+	--table-header-background: #cfd8dc;
+	--table-row-alt-background: #e1e8eb;
+}
+  
+
+.theme-dark {
+    --background-primary: #1e2025;
+    --background-secondary: #16181d;
+    --background-secondary-alt: #0f1115;
+
+    --text-normal: #e0e0e0;
+    
+    --code-normal: #ff6b81;
+    --code-background: #282a2e;
+      
+    --h1-color: #5da9ff;
+    --h2-color: #7ed957;
+    --h3-color: #f6c445;
+    --h4-color: #e57cf5;
+    --h5-color: #4ed3c9;
+    --h6-color: #ff6e6e;
+           
+    --table-header-background: #3a3d42;
+    --table-row-alt-background: #25282e;
+}
+  
+  
+  /* For more css snippets: https://github.com/zamsyt/obsidian-snippets/blob/main/Note%20color%20scheme.css */ 
+  
+  
+	  
+	  
+  

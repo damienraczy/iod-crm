@@ -1,0 +1,278 @@
+{
+  "main": {
+    "id": "754ffc6301e361fb",
+    "type": "split",
+    "children": [
+      {
+        "id": "2534ed033c1ef897",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c91e60fc2625eb0d",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          },
+          {
+            "id": "9aee214f3ea4222d",
+            "type": "leaf",
+            "state": {
+              "type": "css-editor-view",
+              "state": {
+                "file": "theme_dam.css"
+              },
+              "icon": "css-editor-logo",
+              "title": "theme_dam"
+            }
+          },
+          {
+            "id": "8a878962c8f356b1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "smtp_config.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "smtp_config"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "3e78d3fca1ce233a",
+    "type": "split",
+    "children": [
+      {
+        "id": "24d26ca757753af2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "406248cd94cb3fb0",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": true
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "0f63dfd7b1cc5843",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": true,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "4ab1b8c84e3a4fbf",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 215.5
+  },
+  "right": {
+    "id": "68a2dbbfb954ee37",
+    "type": "split",
+    "children": [
+      {
+        "id": "f664bc4ae5d8f7cd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "23d3dda144112644",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": true,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "cb0f03b1d6f854d9",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "00_Workflow_SMQ_IOD.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from 00_Workflow_SMQ_IOD"
+            }
+          },
+          {
+            "id": "92b8788928402c17",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "6949b9a8bdc56988",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "00_Workflow_SMQ_IOD.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 00_Workflow_SMQ_IOD"
+            }
+          },
+          {
+            "id": "6343b82d62ea3dfa",
+            "type": "leaf",
+            "state": {
+              "type": "version-control-view",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "version-control-view"
+            }
+          },
+          {
+            "id": "f4104cba09cba98d",
+            "type": "leaf",
+            "state": {
+              "type": "advanced-tables-toolbar",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "advanced-tables-toolbar"
+            }
+          },
+          {
+            "id": "13c15f6654774e58",
+            "type": "leaf",
+            "state": {
+              "type": "copilot-chat-view",
+              "state": {},
+              "icon": "message-square",
+              "title": "Copilot"
+            }
+          }
+        ],
+        "currentTab": 6
+      }
+    ],
+    "direction": "horizontal",
+    "width": 343.5,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "version-control:Open version control": false,
+      "table-editor-obsidian:Advanced Tables Toolbar": false,
+      "css-editor:Open CSS editor quick switcher": false,
+      "janitor:Janitor: scan vault": false,
+      "copilot:Open Copilot Chat": false
+    }
+  },
+  "active": "9aee214f3ea4222d",
+  "lastOpenFiles": [
+    "2026-03-19.md",
+    "workflow",
+    "paramètres spécifiques.md",
+    "documentation.md",
+    "smtp_config.md",
+    "dockerised_install.md",
+    "maintenance_update_guide.md",
+    "workflow/prospection offre d'emploi-envoi mail.md",
+    "iod_job_intel_config.md",
+    "front_dev_principles.md",
+    "requirements_config.md",
+    "iod_job_intel_users_guide.md",
+    "iod_job_intel_front.md",
+    "web_deploy.md",
+    "commandes de base.md",
+    "install dockerisée.md",
+    "dev_du_front.md.sb-a761dfb8-OgmHx6",
+    "dev_du_front.md",
+    "users copie.md",
+    "SMTP_CONFIGURATION.md",
+    "users.md",
+    "2026-03-18.md",
+    "2026-03-17 Bible du cold call + TODO.md",
+    "copilot/copilot-conversations/De_quoi_parle_ce_dossier@20260317_162400.md",
+    "2026-03-17.md",
+    "2026-03-15.md",
+    "methodo R6/recrutement/Questionaire/Auto-diagnostic (abrégé) de maturité O.md",
+    "Théories/Stratégie",
+    "methodo R6/recrutement",
+    "methodo R6/recrutement/Questionaire",
+    "Mindsets",
+    "templates",
+    "R6_V2.2/R6/axioms.yml",
+    "R6_V2.2/R6/old",
+    "Théories",
+    "Présentation/pj/présentation stratégie-ppt 2-composants.png",
+    "Présentation/pj/Le modèle R6-décideurs et dirigeants.png",
+    "Présentation/pj/3-niveaux.png",
+    "Présentation/pj/3-axes.png",
+    "I6-old/R6 schema.png",
+    "R6-old/R6 schema.png",
+    "O6-old/O6 schema.png",
+    "O6/O6 schema.png",
+    "R6/R6 schema.png",
+    "Pasted image 20260110151310.png"
+  ]
+}

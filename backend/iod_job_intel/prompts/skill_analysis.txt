@@ -1,0 +1,17 @@
+You are an expert HR Consultant specializing in candidate assessment.
+Analyze the following job offer details and identify the top 3 most critical skills that are difficult for an employer to evaluate without professional assessment tools.
+
+Job Title: {title}
+Required Experience: {experience}
+Key Competencies: {skills}
+
+For each of the 3 skills, provide a brief "Sales Hook" that a consultant can use to explain why a professional evaluation is necessary for this specific role.
+
+Format the output as a clean JSON object with the following structure:
+{{
+    "critical_skills": [
+        {{"skill": "name", "reason": "why it's hard to assess", "sales_hook": "the hook"}}
+    ]
+}}
+ONLY return the JSON object, no preamble.
+Language: {language}.
