@@ -1,0 +1,1673 @@
+[
+    {
+        "name": "commercial",
+        "permissions": [
+            {
+                "app_label": "accounts",
+                "codename": "add_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "add_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_accountemail"
+            },
+            {
+                "app_label": "cases",
+                "codename": "add_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "change_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "view_case"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_org"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_tags"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "add_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "change_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "view_contact"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_lead"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_opportunitylineitem"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_taskstage"
+            }
+        ]
+    },
+    {
+        "name": "responsable",
+        "permissions": [
+            {
+                "app_label": "accounts",
+                "codename": "add_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "delete_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "add_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "delete_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_accountemail"
+            },
+            {
+                "app_label": "cases",
+                "codename": "add_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "change_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "delete_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "view_case"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_org"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_tags"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "add_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "change_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "delete_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "view_contact"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "delete_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "delete_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_leadstage"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_leadstage"
+            },
+            {
+                "app_label": "leads",
+                "codename": "delete_leadstage"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_leadstage"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_opportunitylineitem"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_taskstage"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_taskstage"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_taskstage"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_taskstage"
+            }
+        ]
+    },
+    {
+        "name": "admin",
+        "permissions": [
+            {
+                "app_label": "accounts",
+                "codename": "add_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "delete_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_account"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "add_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "delete_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_accountemail"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "add_accountemaillog"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "change_accountemaillog"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "delete_accountemaillog"
+            },
+            {
+                "app_label": "accounts",
+                "codename": "view_accountemaillog"
+            },
+            {
+                "app_label": "admin",
+                "codename": "add_logentry"
+            },
+            {
+                "app_label": "admin",
+                "codename": "change_logentry"
+            },
+            {
+                "app_label": "admin",
+                "codename": "delete_logentry"
+            },
+            {
+                "app_label": "admin",
+                "codename": "view_logentry"
+            },
+            {
+                "app_label": "auth",
+                "codename": "add_group"
+            },
+            {
+                "app_label": "auth",
+                "codename": "change_group"
+            },
+            {
+                "app_label": "auth",
+                "codename": "delete_group"
+            },
+            {
+                "app_label": "auth",
+                "codename": "view_group"
+            },
+            {
+                "app_label": "auth",
+                "codename": "add_permission"
+            },
+            {
+                "app_label": "auth",
+                "codename": "change_permission"
+            },
+            {
+                "app_label": "auth",
+                "codename": "delete_permission"
+            },
+            {
+                "app_label": "auth",
+                "codename": "view_permission"
+            },
+            {
+                "app_label": "cases",
+                "codename": "add_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "change_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "delete_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "view_case"
+            },
+            {
+                "app_label": "cases",
+                "codename": "add_casepipeline"
+            },
+            {
+                "app_label": "cases",
+                "codename": "change_casepipeline"
+            },
+            {
+                "app_label": "cases",
+                "codename": "delete_casepipeline"
+            },
+            {
+                "app_label": "cases",
+                "codename": "view_casepipeline"
+            },
+            {
+                "app_label": "cases",
+                "codename": "add_casestage"
+            },
+            {
+                "app_label": "cases",
+                "codename": "change_casestage"
+            },
+            {
+                "app_label": "cases",
+                "codename": "delete_casestage"
+            },
+            {
+                "app_label": "cases",
+                "codename": "view_casestage"
+            },
+            {
+                "app_label": "cases",
+                "codename": "add_solution"
+            },
+            {
+                "app_label": "cases",
+                "codename": "change_solution"
+            },
+            {
+                "app_label": "cases",
+                "codename": "delete_solution"
+            },
+            {
+                "app_label": "cases",
+                "codename": "view_solution"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_activity"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_address"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_apisettings"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_apisettings"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_apisettings"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_apisettings"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_attachments"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_comment"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_commentfiles"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_contactformsubmission"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_document"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_magiclinktoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_org"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_org"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_org"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_org"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_profile"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_securityauditlog"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_securityauditlog"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_securityauditlog"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_securityauditlog"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_sessiontoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_sessiontoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_sessiontoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_sessiontoken"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_tags"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_teams"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_teams"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_teams"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_teams"
+            },
+            {
+                "app_label": "common",
+                "codename": "add_user"
+            },
+            {
+                "app_label": "common",
+                "codename": "change_user"
+            },
+            {
+                "app_label": "common",
+                "codename": "delete_user"
+            },
+            {
+                "app_label": "common",
+                "codename": "view_user"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "add_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "change_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "delete_contact"
+            },
+            {
+                "app_label": "contacts",
+                "codename": "view_contact"
+            },
+            {
+                "app_label": "contenttypes",
+                "codename": "add_contenttype"
+            },
+            {
+                "app_label": "contenttypes",
+                "codename": "change_contenttype"
+            },
+            {
+                "app_label": "contenttypes",
+                "codename": "delete_contenttype"
+            },
+            {
+                "app_label": "contenttypes",
+                "codename": "view_contenttype"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "add_blacklistedemail"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "change_blacklistedemail"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "delete_blacklistedemail"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "view_blacklistedemail"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "add_sesstat"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "change_sesstat"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "delete_sesstat"
+            },
+            {
+                "app_label": "django_ses",
+                "codename": "view_sesstat"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_estimate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_estimate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_estimate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_estimate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_estimatelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_estimatelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_estimatelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_estimatelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_invoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_invoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_invoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_invoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_invoicehistory"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_invoicehistory"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_invoicehistory"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_invoicehistory"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_invoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_invoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_invoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_invoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_invoicetemplate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_invoicetemplate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_invoicetemplate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_invoicetemplate"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_payment"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_payment"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_payment"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_payment"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_product"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_product"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_product"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_product"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_recurringinvoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_recurringinvoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_recurringinvoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_recurringinvoice"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "add_recurringinvoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "change_recurringinvoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "delete_recurringinvoicelineitem"
+            },
+            {
+                "app_label": "invoices",
+                "codename": "view_recurringinvoicelineitem"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "add_aianalysis"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "change_aianalysis"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "delete_aianalysis"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "view_aianalysis"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "add_appparameter"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "change_appparameter"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "delete_appparameter"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "view_appparameter"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "add_joboffer"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "change_joboffer"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "delete_joboffer"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "view_joboffer"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "add_prompttemplate"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "change_prompttemplate"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "delete_prompttemplate"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "view_prompttemplate"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "add_ridetentry"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "change_ridetentry"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "delete_ridetentry"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "view_ridetentry"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "add_scrapelog"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "change_scrapelog"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "delete_scrapelog"
+            },
+            {
+                "app_label": "iod_job_intel",
+                "codename": "view_scrapelog"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "delete_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_lead"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "delete_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_leadpipeline"
+            },
+            {
+                "app_label": "leads",
+                "codename": "add_leadstage"
+            },
+            {
+                "app_label": "leads",
+                "codename": "change_leadstage"
+            },
+            {
+                "app_label": "leads",
+                "codename": "delete_leadstage"
+            },
+            {
+                "app_label": "leads",
+                "codename": "view_leadstage"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_opportunity"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_opportunitylineitem"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_salesgoal"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_salesgoal"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_salesgoal"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_salesgoal"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "add_stageagingconfig"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "change_stageagingconfig"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "delete_stageagingconfig"
+            },
+            {
+                "app_label": "opportunity",
+                "codename": "view_stageagingconfig"
+            },
+            {
+                "app_label": "orders",
+                "codename": "add_order"
+            },
+            {
+                "app_label": "orders",
+                "codename": "change_order"
+            },
+            {
+                "app_label": "orders",
+                "codename": "delete_order"
+            },
+            {
+                "app_label": "orders",
+                "codename": "view_order"
+            },
+            {
+                "app_label": "orders",
+                "codename": "add_orderlineitem"
+            },
+            {
+                "app_label": "orders",
+                "codename": "change_orderlineitem"
+            },
+            {
+                "app_label": "orders",
+                "codename": "delete_orderlineitem"
+            },
+            {
+                "app_label": "orders",
+                "codename": "view_orderlineitem"
+            },
+            {
+                "app_label": "sessions",
+                "codename": "add_session"
+            },
+            {
+                "app_label": "sessions",
+                "codename": "change_session"
+            },
+            {
+                "app_label": "sessions",
+                "codename": "delete_session"
+            },
+            {
+                "app_label": "sessions",
+                "codename": "view_session"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_board"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardcolumn"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardmember"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_boardtask"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_task"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_taskpipeline"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "add_taskstage"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "change_taskstage"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "delete_taskstage"
+            },
+            {
+                "app_label": "tasks",
+                "codename": "view_taskstage"
+            }
+        ]
+    }
+]

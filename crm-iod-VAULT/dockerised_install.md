@@ -36,7 +36,7 @@ Tapez la commande suivante dans votre terminal :
 ## 5. Étape 4 : Initialiser la base de données
 Une fois que les conteneurs sont "Up", vous devez créer les tables et le compte administrateur.
 1. Exécutez les migrations (création des tables) :
-    `docker-compose exec web python manage.py migrate`
+    `docker-compose exec backend python manage.py migrate`
 2. Créez votre compte administrateur :
     `docker-compose exec backend python manage.py createsuperuser`
     - Suivez les instructions dans le terminal pour choisir un identifiant, un email et un mot de passe.

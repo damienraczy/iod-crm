@@ -7,3 +7,7 @@ voir quels conteneurs sont actifs et récupérer l'id d'un process :
 réinitialiser le password
 - docker exec -it <process_id> python manage.py changepassword <user>
 
+redémarrer
+* `docker-compose stop && docker-compose start`
+- 
+

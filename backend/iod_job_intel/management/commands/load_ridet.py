@@ -120,14 +120,14 @@ class Command(BaseCommand):
 
     def _fetch_from_api(self, limit=None):
         import requests
-        self.stdout.write("Téléchargement de l'export depuis data.gouv.nc...")
+        self.stdout.write("Téléchargement du RIDET depuis data.gouv.nc...")
         # L'API d'export permet de télécharger tout sans limite d'offset
         EXPORT_URL = "https://data.gouv.nc/api/explore/v2.1/catalog/datasets/etablissements-actifs-au-ridet/exports/json"
-        
+
         params = {}
         if limit:
             params["limit"] = limit
-            
+
         try:
             resp = requests.get(EXPORT_URL, params=params, timeout=60)
             resp.raise_for_status()
