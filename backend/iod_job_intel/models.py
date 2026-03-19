@@ -124,6 +124,13 @@ class RidetEntry(models.Model):
     commune           = models.CharField(max_length=100, blank=True)
     province          = models.CharField(max_length=100, blank=True)
     forme_juridique   = models.CharField(max_length=100, blank=True)
+    
+    # Champs consolidés via Infogreffe.nc
+    adresse            = models.TextField(blank=True)
+    code_naf           = models.CharField(max_length=10, blank=True)
+    activite_principale = models.CharField(max_length=255, blank=True)
+    dirigeants         = models.JSONField(default=list, blank=True)
+    
     updated_at        = models.DateTimeField(auto_now=True)
 
     class Meta:

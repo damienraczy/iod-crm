@@ -56,3 +56,24 @@ Vous arriverez sur la page de connexion. Utilisez les identifiants créés à l'
 | **Voir les logs (en cas d'erreur)** | `docker-compose logs -f backend` |
 | **Tout supprimer (nettoyage)**      | `docker-compose down`            |
 Souhaitez-vous que je vous montre comment modifier le fichier de configuration pour lier vos modules d'import de données externes au conteneur Docker ?
+
+### 7. Ajouter à `depends_on` 
+depends_on doit contenir Browserless
+```yaml
+  browserless:
+    image: browserless/chrome:latest
+    container_name: iod-crm-browserless
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=5
+      - CONNECTION_TIMEOUT=60000
+      - PRE_VENT_INITIAL_DOWNLOAD=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/pressure"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+```
+

@@ -40,7 +40,10 @@ class AIAnalysisSerializer(serializers.ModelSerializer):
 class RidetEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model  = RidetEntry
-        fields = ["rid7", "denomination", "sigle", "enseigne", "commune", "province", "forme_juridique"]
+        fields = [
+            "rid7", "denomination", "sigle", "enseigne", "commune", "province",
+            "forme_juridique", "adresse", "code_naf", "activite_principale", "dirigeants"
+        ]
 
 
 class ScrapeLogSerializer(serializers.ModelSerializer):

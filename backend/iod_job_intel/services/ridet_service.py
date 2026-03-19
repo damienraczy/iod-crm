@@ -1,18 +1,23 @@
-"""
-Service de recherche RIDET.
-
-Adapté depuis src/ridet_service.py pour Django ORM.
-Maintient un index mémoire de classe pour performances lors du scraping en masse.
-Sources par ordre de priorité : table RidetEntry (DB) → fichier CSV (fallback).
-"""
-
 import csv
+import logging
 import os
-from typing import Optional
+import re
+from difflib import SequenceMatcher
+from typing import List, Optional, Dict
+from django.db.models import Q
+
+logger = logging.getLogger(__name__)
 
 
 class RidetService:
-    """Recherche le RID7 d'un établissement dans l'index local."""
+    """
+    Recherche et matching d'établissements dans le référentiel RIDET.
+
+    Deux chemins coexistent intentionnellement :
+    - match_company()      → accès DB direct, utilisé par l'API (résultats scorés, pas de cache)
+    - get_rid7_by_name()   → cache mémoire, utilisé par les scrapers pour la reconciliation
+                             en masse (évite N requêtes DB pendant le scraping)
+    """
 
     CSV_PATH = os.path.join(
         os.path.dirname(__file__), "..", "..", "..",
@@ -24,10 +29,94 @@ class RidetService:
         "sas", "sa", "nc", "noumea",
     }
 
-    # Cache de classe partagé entre toutes les instances
+    # Cache de classe partagé entre toutes les instances (utilisé par les scrapers)
     _ridet_index: dict = {}
     _official_names: dict = {}
     _loaded: bool = False
+
+    @classmethod
+    def match_company(cls, query: str) -> Dict:
+        """
+        Algorithme de matching intelligent :
+        1. Recherche exacte (case-insensitive)
+        2. Recherche floue (filtrage SQL + scoring difflib)
+        """
+        from iod_job_intel.models import RidetEntry
+
+        if not query or len(query.strip()) < 2:
+            return {"match_type": "none", "results": []}
+
+        q = query.strip()
+
+        # --- 1. Recherche Exacte ---
+        exact_matches = RidetEntry.objects.filter(
+            Q(denomination__iexact=q) | Q(enseigne__iexact=q) | Q(sigle__iexact=q)
+        )
+
+        count = exact_matches.count()
+        if count == 1:
+            return {"match_type": "exact_single", "results": cls._serialize_entries(exact_matches)}
+        elif count > 1:
+            return {"match_type": "exact_multiple", "results": cls._serialize_entries(exact_matches)}
+
+        # --- 2. Recherche Floue ---
+        tokens = [t for t in re.findall(r"\w{3,}", q.lower()) if t not in cls.IGNORE_NAMES]
+        if not tokens:
+            return {"match_type": "none", "results": []}
+
+        filter_query = Q()
+        for t in tokens:
+            filter_query |= Q(denomination__icontains=t) | Q(enseigne__icontains=t)
+
+        candidates = RidetEntry.objects.filter(filter_query)[:100]
+
+        scored_results = []
+        for entry in candidates:
+            score = max(
+                cls._similarity(q, entry.denomination),
+                cls._similarity(q, entry.enseigne),
+                cls._similarity(q, entry.sigle),
+            )
+            if score > 0.3:
+                scored_results.append({
+                    "rid7": entry.rid7,
+                    "denomination": entry.denomination,
+                    "enseigne": entry.enseigne,
+                    "sigle": entry.sigle,
+                    "commune": entry.commune,
+                    "forme_juridique": entry.forme_juridique,
+                    "score": round(score * 100),
+                })
+
+        scored_results.sort(key=lambda x: x["score"], reverse=True)
+        final_results = scored_results[:25]
+
+        if not final_results:
+            return {"match_type": "none", "results": []}
+
+        return {"match_type": "fuzzy", "results": final_results}
+
+    @staticmethod
+    def _similarity(a: Optional[str], b: Optional[str]) -> float:
+        if not a or not b:
+            return 0.0
+        return SequenceMatcher(None, a.lower().strip(), b.lower().strip()).ratio()
+
+    @staticmethod
+    def _serialize_entries(queryset) -> List[Dict]:
+        return [
+            {
+                "rid7": e.rid7,
+                "denomination": e.denomination,
+                "enseigne": e.enseigne,
+                "sigle": e.sigle,
+                "commune": e.commune,
+                "forme_juridique": e.forme_juridique,
+                "score": 100,
+            } for e in queryset
+        ]
+
+    # ── Cache mémoire (utilisé par les scrapers) ─────────────────────────────────
 
     @classmethod
     def ensure_loaded(cls):
@@ -61,7 +150,7 @@ class RidetService:
                 cls._loaded = True
                 return
         except Exception as exc:
-            print(f"[RIDET] Erreur DB : {exc} — fallback CSV")
+            logger.error(f"[RIDET] Erreur DB lors du chargement du cache : {exc} — fallback CSV")
 
         cls._load_from_csv()
         cls._loaded = True
@@ -69,7 +158,7 @@ class RidetService:
     @classmethod
     def _load_from_csv(cls):
         if not os.path.exists(cls.CSV_PATH):
-            print(f"[RIDET] CSV manquant : {cls.CSV_PATH}")
+            logger.error(f"[RIDET] CSV manquant : {cls.CSV_PATH}")
             return
         try:
             with open(cls.CSV_PATH, "r", encoding="utf-8") as f:
@@ -84,7 +173,7 @@ class RidetService:
                     cls._index(row.get("enseigne"), rid7)
                     cls._index(row.get("sigle"), rid7)
         except Exception as exc:
-            print(f"[RIDET] Erreur CSV : {exc}")
+            logger.error(f"[RIDET] Erreur lecture CSV : {exc}")
 
     @classmethod
     def _index(cls, name: Optional[str], rid7: str):
@@ -92,10 +181,6 @@ class RidetService:
             k = name.strip().lower()
             if k:
                 cls._ridet_index[k] = rid7
-
-    # ------------------------------------------------------------------
-    # API publique
-    # ------------------------------------------------------------------
 
     def get_rid7_by_name(self, company_name: str) -> Optional[str]:
         self.ensure_loaded()

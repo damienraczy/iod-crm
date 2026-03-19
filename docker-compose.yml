@@ -79,6 +79,22 @@ services:
     ports:
       - "5173:5173"
 
+  browserless:
+    image: browserless/chrome:latest
+    container_name: iod-crm-browserless
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=5
+      - CONNECTION_TIMEOUT=60000
+      - PRE_VENT_INITIAL_DOWNLOAD=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/pressure"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   frontend_node_modules:

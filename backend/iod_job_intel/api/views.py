@@ -11,7 +11,10 @@ Vues en lecture seule sauf :
   - PUT/PATCH /parameters/{key}/     → mise à jour d'un paramètre
 """
 
+import importlib
 import json as _json
+import logging
+import traceback
 
 from django.db.models import Q
 from rest_framework import status
@@ -31,6 +34,11 @@ from iod_job_intel.api.serializers import (
     RidetEntrySerializer,
     ScrapeLogSerializer,
 )
+from iod_job_intel.scrapers.infogreffe_nc import InfogreffeScraper
+from iod_job_intel.services.ridet_service import RidetService
+from iod_job_intel.tasks.ridet_tasks import refresh_ridet_task
+
+logger = logging.getLogger(__name__)
 
 
 def _default_language(request=None):
@@ -548,7 +556,6 @@ class SyncTriggerView(APIView):
                 continue
             module_path, class_name = self.SCRAPERS[source]
             try:
-                import importlib
                 module  = importlib.import_module(module_path)
                 scraper = getattr(module, class_name)()
                 kwargs  = {}
@@ -572,3 +579,88 @@ class AppParameterViewSet(ModelViewSet):
     lookup_field         = "key"
     lookup_value_regex   = r"[^/]+"
     http_method_names    = ["get", "put", "patch", "head", "options"]
+
+
+class RidetMatchView(APIView):
+    """
+    Recherche intelligente de RIDET (Exacte puis Floue).
+    GET /api/iod/ridet/match/?q=...
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        q = request.query_params.get("q", "")
+        if len(q) < 2:
+            return Response(
+                {"detail": "Paramètre 'q' requis (min 2 caractères)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        results = RidetService.match_company(q)
+        return Response(results)
+
+
+class RidetConsolidateView(APIView):
+    """
+    Consolide les données d'un établissement via Infogreffe.nc.
+    POST /api/iod/ridet/<rid7>/consolidate/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, rid7):
+        try:
+            entry, _ = RidetEntry.objects.get_or_create(rid7=rid7)
+
+            data = InfogreffeScraper(rid7).run()
+
+            if not data:
+                return Response(
+                    {"detail": "Établissement non trouvé sur Infogreffe.nc. Vérifiez le numéro RID7."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            entry.adresse = data.get("adresse", "")
+            entry.code_naf = data.get("code_naf", "")
+            entry.activite_principale = data.get("activite_principale", "")
+            entry.dirigeants = data.get("dirigeants", [])
+            entry.save()
+
+            return Response(RidetEntrySerializer(entry).data)
+        except Exception as e:
+            logger.error(f"CRASH Consolidation RIDET {rid7}: {e}\n{traceback.format_exc()}")
+            return Response(
+                {"detail": f"Erreur lors de la consolidation : {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class RidetDetailView(APIView):
+    """Récupère les informations d'un établissement stockées localement."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, rid7):
+        try:
+            entry = RidetEntry.objects.get(rid7=rid7)
+            return Response(RidetEntrySerializer(entry).data)
+        except RidetEntry.DoesNotExist:
+            return Response({"detail": "Non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class RidetRefreshView(APIView):
+    """
+    Déclenche le rafraîchissement asynchrone du RIDET.
+    POST /api/iod/ridet/refresh/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if AppParameter.get("ridet_import_status") == "RUNNING":
+            return Response(
+                {"detail": "Un import est déjà en cours."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        refresh_ridet_task.delay()
+        return Response(
+            {"detail": "Mise à jour du RIDET lancée en arrière-plan."},
+            status=status.HTTP_202_ACCEPTED,
+        )

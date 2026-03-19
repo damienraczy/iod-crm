@@ -1,14 +1,3 @@
-/**
- * Dashboard Page - API Version
- *
- * Migrated from Prisma to Django REST API
- * Django endpoint: GET /api/dashboard/
- *
- * To activate:
- *   mv +page.server.js +page.server.prisma.js
- *   mv +page.server.api.js +page.server.js
- */
-
 import { apiRequest } from '$lib/api-helpers.js';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -25,51 +14,17 @@ export async function load({ locals, cookies }) {
   try {
     // Fetch dashboard data from Django API
     const dashboardResponse = await apiRequest('/dashboard/', {}, { cookies, org });
+    
+    if (!dashboardResponse || typeof dashboardResponse !== 'object') {
+      throw new Error('Invalid dashboard response structure');
+    }
 
-    // Django returns:
-    // {
-    //   accounts_count, contacts_count, leads_count, opportunities_count,
-    //   accounts: [], contacts: [], leads: [], opportunities: []
-    // }
-
-    // Transform recent leads
-    const recentLeads = (dashboardResponse.leads || []).slice(0, 5).map((lead) => ({
-      id: lead.id,
-      firstName: lead.first_name,
-      lastName: lead.last_name,
-      company: lead.company?.name || null,
-      status: lead.status,
-      createdAt: lead.created_on
-    }));
-
-    // Transform recent opportunities
-    const recentOpportunities = (dashboardResponse.opportunities || []).slice(0, 5).map((opp) => ({
-      id: opp.id,
-      name: opp.name,
-      amount: opp.amount ? parseFloat(opp.amount) : null,
-      currency: opp.currency || null,
-      stage: opp.stage,
-      probability: opp.probability ? parseFloat(opp.probability) : null,
-      createdAt: opp.created_on,
-      closed_on: opp.closed_on,
-      account: opp.account
-        ? {
-            name: opp.account.name
-          }
-        : null
-    }));
-
-    // Calculate opportunity revenue (sum of all opportunity amounts)
-    const opportunityRevenue = (dashboardResponse.opportunities || []).reduce(
-      (sum, opp) => sum + (opp.amount ? parseFloat(opp.amount) : 0),
-      0
-    );
-
-    // Tasks and activities now come from dashboard response (no separate API calls)
-    // Transform tasks from dashboard response
+    // transform tasks from dashboard response
     const upcomingTasks = (dashboardResponse.tasks || [])
       .filter((task) => {
-        const isAssignedToUser = task.assigned_to && task.assigned_to.some((id) => id === userId);
+        const isAssignedToUser = task.assigned_to && task.assigned_to.some((p) => 
+          p.user_details && p.user_details.id === userId
+        );
         const isNotCompleted = task.status !== 'Completed';
         return isAssignedToUser && isNotCompleted;
       })
@@ -82,53 +37,55 @@ export async function load({ locals, cookies }) {
         dueDate: task.due_date
       }));
 
-    // Transform activities from dashboard response
-    const recentActivities = (dashboardResponse.activities || []).map((activity) => ({
-      id: activity.id,
-      user: {
-        name: activity.user?.name || activity.user?.email?.split('@')[0] || 'Unknown'
-      },
-      action: activity.action,
-      entityType: activity.entity_type,
-      entityId: activity.entity_id,
-      entityName: activity.entity_name,
-      description:
-        activity.description ||
-        `${activity.action_display} ${activity.entity_type}: ${activity.entity_name}`,
-      timestamp: activity.timestamp,
-      humanizedTime: activity.humanized_time
-    }));
-
-    // Count pending tasks for the user
-    const pendingTasks = upcomingTasks.length;
-
-    // Transform hot leads from new API response
-    const hotLeads = (dashboardResponse.hot_leads || []).map((lead) => ({
-      id: lead.id,
-      first_name: lead.first_name,
-      last_name: lead.last_name,
-      company: lead.company,
-      rating: lead.rating,
-      next_follow_up: lead.next_follow_up,
-      last_contacted: lead.last_contacted
-    }));
-
     return {
       metrics: {
         totalLeads: dashboardResponse.leads_count || 0,
         totalOpportunities: dashboardResponse.opportunities_count || 0,
         totalAccounts: dashboardResponse.accounts_count || 0,
         totalContacts: dashboardResponse.contacts_count || 0,
-        pendingTasks: pendingTasks,
-        opportunityRevenue: opportunityRevenue
+        pendingTasks: upcomingTasks.length,
+        opportunityRevenue: (dashboardResponse.opportunities || []).reduce(
+          (sum, opp) => sum + (opp.amount ? parseFloat(opp.amount) : 0),
+          0
+        )
       },
       recentData: {
-        leads: recentLeads,
-        opportunities: recentOpportunities,
+        leads: (dashboardResponse.leads || []).slice(0, 5).map(l => ({
+          id: l.id,
+          firstName: l.first_name,
+          lastName: l.last_name,
+          company: l.company_name || null,
+          status: l.status,
+          createdAt: l.created_at
+        })),
+        opportunities: (dashboardResponse.opportunities || []).slice(0, 5).map(o => ({
+          id: o.id,
+          name: o.name,
+          amount: o.amount ? parseFloat(o.amount) : null,
+          currency: o.currency || null,
+          stage: o.stage,
+          probability: o.probability ? parseFloat(o.probability) : null,
+          createdAt: o.created_at,
+          closed_on: o.closed_on,
+          account: o.account ? { name: o.account.name } : null
+        })),
         tasks: upcomingTasks,
-        activities: recentActivities
+        activities: (dashboardResponse.activities || []).map((activity) => ({
+          id: activity.id,
+          user: {
+            name: activity.user?.name || activity.user?.email?.split('@')[0] || 'Unknown'
+          },
+          action: activity.action,
+          entityType: activity.entity_type,
+          entityId: activity.entity_id,
+          entityName: activity.entity_name,
+          description:
+            activity.description ||
+            `${activity.action_display || ''} ${activity.entity_type || ''}: ${activity.entity_name || ''}`,
+          timestamp: activity.timestamp,
+          humanizedTime: activity.humanized_time
+        }))
       },
-      // NEW: Enhanced dashboard data
       urgentCounts: dashboardResponse.urgent_counts || {
         overdue_tasks: 0,
         tasks_due_today: 0,
@@ -142,13 +99,21 @@ export async function load({ locals, cookies }) {
         won_this_month: 0,
         conversion_rate: 0
       },
-      hotLeads: hotLeads,
+      hotLeads: (dashboardResponse.hot_leads || []).map((lead) => ({
+        id: lead.id,
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        company: lead.company || lead.company_name,
+        rating: lead.rating,
+        next_follow_up: lead.next_follow_up,
+        last_contacted: lead.last_contacted
+      })),
       goalSummary: dashboardResponse.goal_summary || []
     };
   } catch (error) {
-    console.error('Dashboard load error:', error);
+    console.error('DASHBOARD_FATAL_ERROR:', error);
     return {
-      error: 'Failed to load dashboard data'
+      error: 'Failed to load dashboard data: ' + error.message
     };
   }
 }

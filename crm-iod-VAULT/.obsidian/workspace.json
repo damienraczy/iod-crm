@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "maintenance_update_guide.md",
+                "file": "scrapper_infogreffe_install.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "maintenance_update_guide"
+              "title": "scrapper_infogreffe_install"
             }
           }
         ]
@@ -74,8 +74,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -207,10 +206,14 @@
   },
   "active": "4b75ba478a20a0aa",
   "lastOpenFiles": [
+    "dockerised_install.md",
+    "scrapper_infogreffe_install.md",
+    "workflow/prospection offre d'emploi-envoi mail.md",
+    "commandes de base.md",
+    "smtp_config.md",
+    "maintenance_update_guide.md",
     "iod_job_intel_front.md",
     "users & groups.md",
-    "dockerised_install.md",
-    "commandes de base.md",
     "pj/restore_groups_v2.py",
     "pj/export_groups_v2.py",
     "pj",
@@ -218,9 +221,6 @@
     "workflow",
     "paramètres spécifiques.md",
     "documentation.md",
-    "smtp_config.md",
-    "maintenance_update_guide.md",
-    "workflow/prospection offre d'emploi-envoi mail.md",
     "iod_job_intel_config.md",
     "front_dev_principles.md",
     "requirements_config.md",

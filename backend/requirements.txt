@@ -35,3 +35,4 @@ pytest-cov==7.0.0
 # IOD Job Intelligence
 beautifulsoup4==4.12.3
 pyyaml==6.0.2
+playwright==1.42.0

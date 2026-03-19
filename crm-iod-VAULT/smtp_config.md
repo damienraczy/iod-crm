@@ -4,7 +4,7 @@ Cette notice explique comment configurer l'envoi d'e-mails pour l'application Dj
 
 ## 1. Fichier de configuration cible
 Dans un environnement Docker, **tous les changements** doivent être effectués dans le fichier suivant à la racine du projet :
-`django-crm/.env.docker`
+`iod-crm/.env.docker`
 
 > **Note :** Ne modifiez pas `backend/.env`, car il est ignoré par Docker au profit de `.env.docker`.
 

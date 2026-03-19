@@ -3,14 +3,17 @@
   import { page } from '$app/stores';
   import { goto, invalidateAll } from '$app/navigation';
   import { tick } from 'svelte';
+  import RidetFuzzyDialog from '$lib/components/job-intel/RidetFuzzyDialog.svelte';
   import { enhance, deserialize } from '$app/forms';
   import { toast } from 'svelte-sonner';
   import { Button } from '$lib/components/ui/button/index.js';
+  import { Badge } from '$lib/components/ui/badge/index.js';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import {
     RefreshCw, ExternalLink, ChevronLeft, ChevronRight,
-    Search, X, Brain, Save, Loader, Zap,
-    MessageSquare, Mail, Stethoscope, Sparkles, Building2
+    Search, X, Brain, Save, Loader2, Zap,
+    MessageSquare, Mail, Stethoscope, Sparkles, Building2,
+    Users, Building
   } from '@lucide/svelte';
 
   /** @type {{ data: import('./$types').PageData, form: import('./$types').ActionData }} */
@@ -97,6 +100,11 @@
   let offerAnalyses = $state([]);
   let loadingAnalyses = $state(false);
 
+  // Entreprise / RIDET
+  /** @type {any | null} */
+  let ridetDetail = $state(null);
+  let isConsolidating = $state(false);
+
   // Edition
   let editData = $state({});
   let isSavingOffer = $state(false);
@@ -139,17 +147,21 @@
     return result.data;
   }
 
-  async function openOffer(offer) {
+  function openOffer(offer) {
+    // 1. Ouverture immédiate du tiroir
     selectedOffer = offer;
     drawerOpen = true;
     drawerTab = 'detail';
+    
+    // Reset des états
     iaOutput = '';
     iaOutputType = '';
     crmAccount = null;
     showProspectForm = false;
-    prospectName = '';
+    ridetDetail = null;
+    prospectName = `${offer.title} - ${offer.company_name}`;
     prospectEmailDraft = '';
-    // Pré-remplir editData avec les données légères disponibles
+    
     editData = {
       title: offer.title,
       location: offer.location || '',
@@ -162,9 +174,48 @@
       description: '',
     };
 
-    // Charger le détail complet via server action (auth par cookie)
+    // 2. Lancement asynchrone en arrière-plan
+    loadAllOfferData(offer);
+  }
+
+  async function loadAllOfferData(offer) {
     try {
-      const data = await callAction('getOffer', { id: String(offer.id) });
+      // Détails
+      const detailData = await callAction('getOffer', { id: String(offer.id) });
+      selectedOffer = detailData.offer;
+      editData = {
+        ...editData,
+        experience_req: detailData.offer.experience_req || '',
+        education_req: detailData.offer.education_req || '',
+        nb_postes: detailData.offer.nb_postes || 1,
+        description: detailData.offer.description || '',
+      };
+
+      // Analyses
+      await loadAnalyses(offer.id);
+
+      // CRM
+      if (offer.rid7) {
+        const res = await callAction('crmAccount', { rid7: offer.rid7, create: 'false' });
+        crmAccount = res.found ? res.account : null;
+        
+        // Charger aussi les données consolidées locales (dirigeants, etc.)
+        try {
+          const rData = await callAction('getRidet', { rid7: offer.rid7 });
+          ridetDetail = rData.result;
+        } catch (e) {
+          ridetDetail = null;
+        }
+      }
+    } catch (err) {
+      console.error('Erreur chargement données offer:', err);
+    }
+  }
+
+  async function fetchFullDetail() {
+    if (!selectedOffer) return;
+    try {
+      const data = await callAction('getOffer', { id: String(selectedOffer.id) });
       selectedOffer = data.offer;
       editData = {
         title: data.offer.title,
@@ -177,18 +228,20 @@
         status: data.offer.status,
         description: data.offer.description || '',
       };
+      toast.success('Détails chargés');
     } catch (err) {
-      console.error('Impossible de charger le détail :', err);
+      toast.error('Erreur lors du chargement des détails');
     }
+  }
 
-    await loadAnalyses(offer.id);
-
-    // Vérifier silencieusement si un compte CRM existe pour ce RIDET
-    if (offer.rid7) {
-      try {
-        const res = await callAction('crmAccount', { rid7: offer.rid7, create: 'false' });
-        crmAccount = res.found ? res.account : null;
-      } catch { crmAccount = null; }
+  async function checkCRMAccount() {
+    if (!selectedOffer?.rid7) return;
+    try {
+      const res = await callAction('crmAccount', { rid7: selectedOffer.rid7, create: 'false' });
+      crmAccount = res.found ? res.account : null;
+      if (!res.found) toast.info('Aucun compte CRM trouvé pour ce RID7');
+    } catch {
+      toast.error('Erreur lors de la vérification CRM');
     }
   }
 
@@ -373,6 +426,89 @@
       || COMPANY_AI_ACTIONS.find(a => a.type === type)?.label
       || type;
   }
+
+  // ── RID7 (Assignation) ───────────────────────────────────────────────────────
+  let ridetSearchQuery = $state('');
+  let ridetSearchResults = $state([]);
+  let isSearchingRidet = $state(false);
+  let searchTimer;
+
+  async function searchRidet() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      if (!ridetSearchQuery || ridetSearchQuery.length < 2) {
+        ridetSearchResults = [];
+        return;
+      }
+      isSearchingRidet = true;
+      try {
+        const data = await callAction('matchRidet', { q: ridetSearchQuery });
+        ridetSearchResults = data.result?.results || [];
+      } catch (err) {
+        console.error('Recherche RIDET error:', err);
+        toast.error('Erreur recherche RIDET');
+      } finally {
+        isSearchingRidet = false;
+      }
+    }, 400);
+  }
+
+  async function updateOfferRID7(newRid7) {
+    if (!selectedOffer) return;
+    try {
+      await callAction('patchOffer', {
+        id: String(selectedOffer.id),
+        data: JSON.stringify({ rid7: newRid7 })
+      });
+      toast.success(newRid7 ? 'RID7 assigné' : 'RID7 effacé');
+      selectedOffer.rid7 = newRid7;
+      ridetSearchResults = [];
+      ridetSearchQuery = '';
+      await invalidateAll();
+    } catch (err) {
+      toast.error(err.message || 'Erreur lors de la mise à jour');
+    }
+  }
+
+  async function consolidateRidet() {
+    if (!selectedOffer || !selectedOffer.rid7) return;
+    isConsolidating = true;
+    try {
+      const data = await callAction('consolidateRidet', { rid7: selectedOffer.rid7 });
+      ridetDetail = data.result;
+      toast.success('Données consolidées');
+    } catch (err) {
+      toast.error(err.message || 'Erreur consolidation Infogreffe');
+    } finally {
+      isConsolidating = false;
+    }
+  }
+
+  // ── Recherche intelligente RIDET ──────────────────────────────────────────────
+  let fuzzyResults = $state([]);
+  let showFuzzyDialog = $state(false);
+  let matchingQuery = $state('');
+
+  async function startRidetMatch() {
+    if (!selectedOffer || !selectedOffer.company_name) return;
+    matchingQuery = selectedOffer.company_name;
+    try {
+      const data = await callAction('matchRidet', { q: matchingQuery });
+      const res = data.result;
+      if (res.match_type === 'exact_single') {
+        const rid7 = res.results[0].rid7;
+        toast.success(`Match trouvé : ${rid7}`);
+        await updateOfferRID7(rid7);
+      } else if (res.match_type === 'none') {
+        toast.error('Aucun établissement trouvé dans le RIDET.');
+      } else {
+        fuzzyResults = res.results;
+        showFuzzyDialog = true;
+      }
+    } catch (err) {
+      toast.error('Erreur lors de la recherche RIDET');
+    }
+  }
 </script>
 
 <svelte:head><title>Offres d'emploi — Intelligence</title></svelte:head>
@@ -537,7 +673,7 @@
 
     <!-- Onglets -->
     <div class="flex border-b text-sm">
-      {#each [['detail','Détail'], ['edit','Éditer Offre'], ['ia','Actions IA']] as [tab, label]}
+      {#each [['detail','Détail'], ['liaison','Entreprise'], ['edit','Éditer'], ['ia','Actions IA']] as [tab, label]}
         <button
           onclick={() => (drawerTab = tab)}
           class="flex-1 px-3 py-2.5 font-medium transition-colors
@@ -551,9 +687,137 @@
     <!-- Corps -->
     <div class="flex-1 overflow-y-auto">
 
+      <!-- ── Onglet Entreprise ── -->
+      {#if drawerTab === 'liaison'}
+        <div class="px-5 py-4 space-y-6">
+          
+          <!-- Recherche Automatique (Matching) -->
+          <div class="flex items-center justify-between gap-4 p-3 rounded-lg border bg-primary/5">
+            <div class="flex items-center gap-3">
+              <Sparkles class="size-5 text-primary" />
+              <span class="text-sm font-medium">Recherche intelligente RIDET</span>
+            </div>
+            <Button size="sm" class="gap-2 font-bold" onclick={startRidetMatch}>
+              <Search class="size-4" />
+              Rechercher RIDET
+            </Button>
+          </div>
+
+          <!-- RID7 Actuel & Consolidation -->
+          <div class="space-y-3">
+            <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Identification RIDET</p>
+            <div class="flex items-center gap-3">
+              <div class="flex-1 font-mono text-sm bg-muted/50 p-2.5 rounded border border-dashed text-center">
+                {selectedOffer.rid7 || 'Aucun RID7'}
+              </div>
+              {#if selectedOffer.rid7}
+                <Button variant="outline" size="sm" class="text-red-600 hover:text-red-700 h-10 px-3" onclick={() => updateOfferRID7('')}>
+                  <X class="size-4" />
+                </Button>
+              {/if}
+            </div>
+
+            {#if selectedOffer.rid7}
+              <Button 
+                variant="secondary" 
+                class="w-full gap-2 border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" 
+                onclick={consolidateRidet}
+                disabled={isConsolidating}
+              >
+                {#if isConsolidating}
+                  <Loader2 
+ class="size-4 animate-spin" />
+                  Consolidation en cours...
+                {:else}
+                  <RefreshCw class="size-4" />
+                  Consolider (Infogreffe.nc)
+                {/if}
+              </Button>
+            {/if}
+
+            {#if ridetDetail && ridetDetail.dirigeants && ridetDetail.dirigeants.length > 0}
+              <div class="mt-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2">Dirigeants identifiés</p>
+                <div class="space-y-1.5">
+                  {#each ridetDetail.dirigeants as dir}
+                    <div class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <Users class="size-3.5 text-blue-500" />
+                      {dir}
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="h-px flex-1 bg-border/50"></div>
+            <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Saisie manuelle</span>
+            <div class="h-px flex-1 bg-border/50"></div>
+          </div>
+
+          <!-- Saisie Manuelle -->
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Saisir RID7 (7 chiffres)…"
+              maxlength="7"
+              class="border-input bg-background h-10 flex-1 rounded-md border px-3 text-sm focus:outline-none focus:ring-1"
+              id="manual-rid7"
+            />
+            <Button size="sm" variant="outline" class="h-10" onclick={() => {
+              const input = document.getElementById('manual-rid7');
+              if (input && input.value.length === 7) updateOfferRID7(input.value);
+              else toast.error('Le RID7 doit comporter 7 chiffres');
+            }}>
+              Assigner
+            </Button>
+          </div>
+
+          <hr class="opacity-50" />
+
+          <!-- Recherche Manuelle Référentiel -->
+          <div>
+            <p class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">Recherche manuelle</p>
+            <div class="relative">
+              <Search class="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" strokeWidth={1.75} />
+              <input
+                type="text"
+                placeholder="Nom, enseigne ou sigle…"
+                bind:value={ridetSearchQuery}
+                oninput={searchRidet}
+                class="border-input bg-background h-10 w-full rounded-md border pl-8 pr-3 text-sm focus:outline-none focus:ring-1"
+              />
+              {#if isSearchingRidet}
+                <RefreshCw class="text-muted-foreground absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin" />
+              {/if}
+            </div>
+
+            <div class="mt-3 space-y-1 max-h-[250px] overflow-y-auto">
+              {#each ridetSearchResults as entry}
+                <button
+                  class="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors group"
+                  onclick={() => updateOfferRID7(entry.rid7)}
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-sm line-clamp-1">{entry.denomination || entry.enseigne}</span>
+                    <span class="font-mono text-[11px] text-muted-foreground bg-muted px-1.5 rounded">{entry.rid7}</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                    <Building class="size-3" />
+                    <span>{entry.commune} · {entry.forme_juridique}</span>
+                  </div>
+                </button>
+              {/each}
+            </div>
+          </div>
+        </div>
+      {/if}
+
       <!-- ── Onglet Détail ── -->
       {#if drawerTab === 'detail'}
         <div class="px-5 py-4 space-y-5">
+          <!-- ... (Infos de l'offre déjà existantes) ... -->
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p class="text-muted-foreground text-xs">Source</p>
@@ -594,6 +858,44 @@
             </div>
           {/if}
 
+          <!-- Données Consolidées RIDET (Dirigeants, etc.) -->
+          {#if ridetDetail}
+            <div class="rounded-xl border border-blue-100 bg-blue-50/20 p-4 space-y-4">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-bold uppercase tracking-widest text-blue-700">Données Consolidées</p>
+                <Badge variant="outline" class="bg-blue-100 text-blue-700 border-blue-200">Infogreffe.nc</Badge>
+              </div>
+              
+              {#if ridetDetail.adresse}
+                <div>
+                  <p class="text-[10px] text-muted-foreground uppercase font-medium">Adresse Siège</p>
+                  <p class="text-sm mt-0.5 italic">{ridetDetail.adresse}</p>
+                </div>
+              {/if}
+
+              {#if ridetDetail.code_naf}
+                <div>
+                  <p class="text-[10px] text-muted-foreground uppercase font-medium">Activité (NAF)</p>
+                  <p class="text-sm mt-0.5 font-medium">{ridetDetail.code_naf} - {ridetDetail.activite_principale}</p>
+                </div>
+              {/if}
+
+              {#if ridetDetail.dirigeants && ridetDetail.dirigeants.length > 0}
+                <div>
+                  <p class="text-[10px] text-muted-foreground uppercase font-medium">Dirigeants & Représentants</p>
+                  <div class="mt-2 space-y-1">
+                    {#each ridetDetail.dirigeants as dir}
+                      <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                        <Users class="size-3.5 text-blue-500" />
+                        {dir}
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {/if}
+
           <!-- Compte CRM + Démarche -->
           {#if selectedOffer.rid7}
             <div class="space-y-2">
@@ -623,7 +925,8 @@
                     class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
                   >
                     {#if crmAccountLoading}
-                      <Loader class="size-3.5 animate-spin" />
+                      <Loader2 
+ class="size-3.5 animate-spin" />
                     {:else}
                       <Building2 class="size-3.5" strokeWidth={1.75} />
                     {/if}
@@ -669,7 +972,8 @@
                       class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       {#if prospectCreating}
-                        <Loader class="size-3.5 animate-spin" />
+                        <Loader2 
+ class="size-3.5 animate-spin" />
                       {:else}
                         <Zap class="size-3.5" strokeWidth={1.75} />
                       {/if}
@@ -832,7 +1136,8 @@
                     {iaOutputType === action.type ? 'border-[var(--color-primary-default)] text-[var(--color-primary-default)]' : ''}"
                 >
                   {#if runningAction === action.key}
-                    <Loader class="size-3 animate-spin" />
+                    <Loader2 
+ class="size-3 animate-spin" />
                   {:else}
                     <action.icon class="size-3" strokeWidth={1.75} />
                   {/if}
@@ -858,7 +1163,8 @@
                       {iaOutputType === action.type ? 'border-[var(--color-primary-default)] text-[var(--color-primary-default)]' : ''}"
                   >
                     {#if runningAction === action.key}
-                      <Loader class="size-3 animate-spin" />
+                      <Loader2 
+ class="size-3 animate-spin" />
                     {:else}
                       <action.icon class="size-3" strokeWidth={1.75} />
                     {/if}
@@ -876,7 +1182,8 @@
           <!-- Résultat -->
           {#if runningAction}
             <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader class="size-4 animate-spin" strokeWidth={1.75} />
+              <Loader2 
+ class="size-4 animate-spin" strokeWidth={1.75} />
               Génération en cours…
             </div>
           {:else if iaOutput}
@@ -907,7 +1214,7 @@
       </div>
       {#if drawerTab === 'edit'}
         <Button size="sm" onclick={saveOffer} disabled={isSavingOffer} class="gap-2">
-          {#if isSavingOffer}<Loader class="size-3.5 animate-spin" />{:else}<Save class="size-3.5" />{/if}
+          {#if isSavingOffer}<Loader2 class="size-3.5 animate-spin" />{:else}<Save class="size-3.5" />{/if}
           Enregistrer
         </Button>
       {:else}
@@ -921,3 +1228,12 @@
 <form method="POST" action="?/sync" bind:this={syncForm} use:enhance={syncEnhance} class="hidden">
   <input type="hidden" name="sources" value={syncSources} />
 </form>
+
+{#if showFuzzyDialog}
+  <RidetFuzzyDialog 
+    query={matchingQuery} 
+    results={fuzzyResults} 
+    onSelect={(rid7) => updateOfferRID7(rid7)}
+    onClose={() => (showFuzzyDialog = false)}
+  />
+{/if}

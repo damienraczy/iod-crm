@@ -160,5 +160,41 @@ export const actions = {
     } catch (err) {
       return fail(502, { error: err.message });
     }
+  },
+
+  // Recherche intelligente RIDET (Exact -> Flou)
+  matchRidet: async ({ request, cookies }) => {
+    const form = await request.formData();
+    const q = form.get('q');
+    try {
+      const result = await apiRequest(`/iod/ridet/match/?q=${encodeURIComponent(q)}`, {}, cookies);
+      return { result };
+    } catch (err) {
+      return fail(400, { error: err.message });
+    }
+  },
+
+  // Récupère les données d'un établissement localement
+  getRidet: async ({ request, cookies }) => {
+    const form = await request.formData();
+    const rid7 = form.get('rid7');
+    try {
+      const result = await apiRequest(`/iod/ridet/${rid7}/`, {}, cookies);
+      return { result };
+    } catch (err) {
+      return fail(404, { error: err.message });
+    }
+  },
+
+  // Consolide les données RIDET (Scraping Infogreffe)
+  consolidateRidet: async ({ request, cookies }) => {
+    const form = await request.formData();
+    const rid7 = form.get('rid7');
+    try {
+      const result = await apiRequest(`/iod/ridet/${rid7}/consolidate/`, { method: 'POST' }, cookies);
+      return { result };
+    } catch (err) {
+      return fail(400, { error: err.message });
+    }
   }
 };

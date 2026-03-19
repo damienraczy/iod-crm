@@ -42,7 +42,8 @@
     Newspaper,
     Search,
     Activity,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Database
   } from '@lucide/svelte';
 
   /**
@@ -247,6 +248,7 @@
       type: 'dropdown',
       children: [
         { href: '/job-intel/offers', label: "Offres d'emploi", icon: Search, preload: 'off' },
+        { href: '/job-intel/ridet', label: 'Intelligence RIDET', icon: Database, preload: 'off' },
         { href: '/job-intel/logs', label: 'Logs scraping', icon: Activity, preload: 'off' },
         { href: '/job-intel/parameters', label: 'Paramètres', icon: SlidersHorizontal, preload: 'off' }
       ]
