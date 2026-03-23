@@ -18,11 +18,6 @@ Voici les principes de développement à respecter pour personnaliser votre CRM 
 * **API :** Utilisez les "Signals" de Django pour déclencher des actions (ex: créer une offre d'emploi dès qu'un prospect est qualifié) sans modifier le code de qualification du prospect.
 * **Frontend :** Si vous devez ajouter un bouton sur une page existante, documentez précisément la ligne modifiée. C'est le seul cas où un conflit `git` sera inévitable.
 
-### 5. Stratégie Git rigoureuse
-* **Branche de travail :** Ne travaillez jamais sur la branche `main`. Créez une branche `prod-custom`.
-* **Mise à jour :** Pour mettre à jour, faites un `git pull origin main` sur votre branche `main` propre, puis faites un `git merge main` vers votre branche `prod-custom`.
-* **Conflits :** En respectant les points 1 et 2, les seuls conflits possibles concerneront `settings.py` et les fichiers de routage, ce qui se résout en quelques secondes.
-
 ---
 
 ### Résumé technique pour une mise à jour sans douleur

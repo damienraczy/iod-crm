@@ -84,7 +84,7 @@
   // Get currency symbol
   const currencySymbol = $derived(() => {
     try {
-      return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat('fr-FR', {
         style: 'currency',
         currency: formCurrency
       })
@@ -349,7 +349,7 @@
                   </div>
                   <div class="flex items-baseline gap-3">
                     <span class="text-gradient text-4xl font-bold tracking-tight md:text-5xl">
-                      {new Intl.NumberFormat('en-US', {
+                      {new Intl.NumberFormat('fr-FR', {
                         style: 'currency',
                         currency: formCurrency,
                         minimumFractionDigits: 0,
@@ -361,7 +361,7 @@
                     </span>
                   </div>
                   <div class="text-muted-foreground mt-2 text-sm">
-                    Sample: {new Intl.NumberFormat('en-US', {
+                    Sample: {new Intl.NumberFormat('fr-FR', {
                       style: 'currency',
                       currency: formCurrency
                     }).format(12345.67)}

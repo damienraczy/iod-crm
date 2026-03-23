@@ -3,7 +3,7 @@
  * @module lib/utils/formatting
  */
 
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
+const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
   month: 'short',
   day: 'numeric',
   year: 'numeric'
@@ -62,7 +62,7 @@ export function formatRelativeDate(date) {
  * @param {boolean} [compact=false] - Use compact notation (e.g., $1.2M)
  * @returns {string} Formatted currency string or '-' if no amount
  */
-export function formatCurrency(amount, currency = 'USD', compact = false) {
+export function formatCurrency(amount, currency = 'XPF', compact = false) {
   if (amount === null || amount === undefined) return '-';
 
   // Convert to number if string
@@ -75,7 +75,7 @@ export function formatCurrency(amount, currency = 'USD', compact = false) {
   const currencyCode = currency && currency.length === 3 ? currency : 'USD';
 
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: currencyCode,
       notation: compact ? 'compact' : 'standard',
@@ -83,7 +83,7 @@ export function formatCurrency(amount, currency = 'USD', compact = false) {
     }).format(numAmount);
   } catch {
     // Fallback if currency code is invalid
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'USD',
       notation: compact ? 'compact' : 'standard',
@@ -99,7 +99,7 @@ export function formatCurrency(amount, currency = 'USD', compact = false) {
  */
 export function formatNumber(num) {
   if (num === null || num === undefined) return '-';
-  return new Intl.NumberFormat('en-US').format(num);
+  return new Intl.NumberFormat('fr-FR').format(num);
 }
 
 /**

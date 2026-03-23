@@ -66,7 +66,7 @@ docker-compose up -d celery-worker backend
 Pour vérifier si les e-mails partent réellement ou diagnostiquer une erreur SMTP :
 
 ```bash
-docker logs -f django-crm-celery-worker-1
+docker logs -f iod-crm-celery-worker-1
 ```
 
 Recherchez les lignes `Task common.tasks.send_magic_link_email... succeeded`.

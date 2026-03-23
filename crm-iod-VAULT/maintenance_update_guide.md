@@ -23,6 +23,8 @@ Tout le reste est **exclusif à notre customisation** et ne touche pas le code u
 
 ## 1. Mettre à jour Django-CRM sans casser iod_job_intel
 
+Ce qui suit est valable uniquement lorsque l'on veut mettre à jour la version de base de Django-CRM.
+
 ### Stratégie de branches Git (à mettre en place si ce n'est pas déjà fait)
 
 La branche `master` doit rester identique à l'upstream officiel. Toutes les customisations vivent sur une branche `prod-custom`.
@@ -166,7 +168,7 @@ cd ~/dev/django-crm/django-crm
 git push origin prod-custom
 
 # Ou vers un remote séparé (ex : dépôt privé)
-git remote add custom git@github.com:votre-compte/django-crm-nc.git
+git remote add custom git@github.com:votre-compte/iod-crm-nc.git
 git push custom prod-custom
 ```
 
@@ -194,7 +196,7 @@ docker-compose exec db pg_dump \
   -f /tmp/iod_backup_$(date +%Y%m%d).dump
 
 # Copier le dump hors du conteneur
-docker cp django-crm-db-1:/tmp/iod_backup_$(date +%Y%m%d).dump ~/backups/
+docker cp iod-crm-db-1:/tmp/iod_backup_$(date +%Y%m%d).dump ~/backups/
 ```
 
 #### Alternative via Django dumpdata (format JSON, plus portable)
@@ -205,7 +207,7 @@ docker-compose exec backend python manage.py dumpdata \
   --indent 2 \
   --output /tmp/iod_data_$(date +%Y%m%d).json
 
-docker cp django-crm-backend-1:/tmp/iod_data_$(date +%Y%m%d).json ~/backups/
+docker cp iod-crm-backend-1:/tmp/iod_data_$(date +%Y%m%d).json ~/backups/
 ```
 
 > **Important :** Le référentiel RIDET (~43 000 entrées) est volumineux. Il peut être rechargé depuis l'API officielle avec `load_ridet --url` plutôt que sauvegardé. Sauvegarder en priorité `AIAnalysis`, `JobOffer`, `AppParameter` et `PromptTemplate`.
@@ -221,7 +223,7 @@ docker-compose exec backend python manage.py dumpdata \
   --indent 2 \
   --output /tmp/iod_critical_$(date +%Y%m%d).json
 
-docker cp django-crm-backend-1:/tmp/iod_critical_$(date +%Y%m%d).json ~/backups/
+docker cp iod-crm-backend-1:/tmp/iod_critical_$(date +%Y%m%d).json ~/backups/
 ```
 
 ### 2.3 Sauvegarde des fichiers de configuration
@@ -251,7 +253,7 @@ docker-compose exec backend python manage.py dumpdata \
   iod_job_intel.PromptTemplate \
   iod_job_intel.AppParameter \
   --indent 2 --output /tmp/iod_critical.json
-docker cp django-crm-backend-1:/tmp/iod_critical.json $BACKUP_DIR/
+docker cp iod-crm-backend-1:/tmp/iod_critical.json $BACKUP_DIR/
 
 # Config
 cp .env.docker $BACKUP_DIR/
@@ -441,7 +443,7 @@ docker-compose exec backend python manage.py shell -c \
 
 ```bash
 # Copier le fichier de données dans le conteneur
-docker cp ~/backups/iod_critical_YYYYMMDD.json django-crm-backend-1:/tmp/
+docker cp ~/backups/iod_critical_YYYYMMDD.json iod-crm-backend-1:/tmp/
 
 # Charger les données (les AppParameter et PromptTemplate écrasent les valeurs par défaut)
 docker-compose exec backend python manage.py loaddata /tmp/iod_critical_YYYYMMDD.json

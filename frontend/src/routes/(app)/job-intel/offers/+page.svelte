@@ -54,6 +54,17 @@
     LEMPLOI_NC: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
   };
 
+  const EVAL_LABELS = {
+    eval_n4: 'N4', eval_n5: 'N5', eval_n6: 'N6', eval_n7: 'N7', eval_n8: 'N8'
+  };
+  const EVAL_COLORS = {
+    eval_n4: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+    eval_n5: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+    eval_n6: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    eval_n7: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    eval_n8: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  };
+
   const AI_ACTIONS = [
     { key: 'skill-analysis',    label: 'Compétences critiques', icon: Brain,         type: 'skill_analysis' },
     { key: 'ice-breaker',       label: 'Ice breaker',           icon: Sparkles,      type: 'ice_breaker' },
@@ -109,12 +120,23 @@
   let editData = $state({});
   let isSavingOffer = $state(false);
 
-  // CRM Account link
+  // CRM Account link (lecture seule au chargement)
   /** @type {{ id: string, name: string, rid7: string } | null} */
   let crmAccount = $state(null);
-  let crmAccountLoading = $state(false);
 
-  // Démarche commerciale
+  // Action commerciale orchestrée
+  let actionLoading = $state(false);
+  /**
+   * @type {{
+   *   eval_category: { code: string, label: string },
+   *   account: { id: string, name: string, rid7: string, created: boolean },
+   *   contacts: Array<{ id: string, name: string, title: string }>,
+   *   product: { id: string, name: string, price: string, currency: string } | null
+   * } | null}
+   */
+  let actionResult = $state(null);
+
+  // Formulaire opportunité
   let showProspectForm = $state(false);
   let prospectName = $state('');
   let prospectEmailDraft = $state('');
@@ -157,6 +179,8 @@
     iaOutput = '';
     iaOutputType = '';
     crmAccount = null;
+    actionResult = null;
+    actionLoading = false;
     showProspectForm = false;
     ridetDetail = null;
     prospectName = `${offer.title} - ${offer.company_name}`;
@@ -194,16 +218,18 @@
       // Analyses
       await loadAnalyses(offer.id);
 
-      // CRM
+      // CRM — vérifier si un compte existe déjà
       if (offer.rid7) {
-        const res = await callAction('crmAccount', { rid7: offer.rid7, create: 'false' });
-        crmAccount = res.found ? res.account : null;
-        
-        // Charger aussi les données consolidées locales (dirigeants, etc.)
+        try {
+          const res = await callAction('crmAccount', { rid7: offer.rid7 });
+          crmAccount = res.found ? res.account : null;
+        } catch { crmAccount = null; }
+
+        // Données consolidées locales (dirigeants, etc.)
         try {
           const rData = await callAction('getRidet', { rid7: offer.rid7 });
           ridetDetail = rData.result;
-        } catch (e) {
+        } catch {
           ridetDetail = null;
         }
       }
@@ -234,14 +260,22 @@
     }
   }
 
-  async function checkCRMAccount() {
-    if (!selectedOffer?.rid7) return;
+  async function startAction() {
+    if (!selectedOffer || actionLoading) return;
+    actionLoading = true;
     try {
-      const res = await callAction('crmAccount', { rid7: selectedOffer.rid7, create: 'false' });
-      crmAccount = res.found ? res.account : null;
-      if (!res.found) toast.info('Aucun compte CRM trouvé pour ce RID7');
-    } catch {
-      toast.error('Erreur lors de la vérification CRM');
+      const res = await callAction('startAction', { offerId: String(selectedOffer.id) });
+      actionResult = res.result;
+      crmAccount = res.result.account;
+      const nb = res.result.contacts.length;
+      toast.success(
+        `${res.result.eval_category.label} · compte ${res.result.account.created ? 'créé' : 'existant'}` +
+        (nb ? ` · ${nb} contact${nb > 1 ? 's' : ''}` : '')
+      );
+    } catch (err) {
+      toast.error(err.message || 'Erreur action commerciale');
+    } finally {
+      actionLoading = false;
     }
   }
 
@@ -287,27 +321,35 @@
 
   // ── Démarche commerciale ──────────────────────────────────────────────────────
   function openProspectForm() {
-    prospectName = `Prospection — ${selectedOffer?.title || ''}`;
-    // Pré-remplir avec le dernier email IA s'il existe
+    const cat = actionResult?.eval_category?.label || '';
+    prospectName = cat
+      ? `Évaluation ${cat} — ${selectedOffer?.company_name || ''}`
+      : `Prospection — ${selectedOffer?.title || ''}`;
     const lastEmail = offerAnalyses.find(a => a.analysis_type === 'email_job');
     prospectEmailDraft = lastEmail?.result_text || '';
     showProspectForm = true;
   }
 
   async function createProspect() {
-    if (!crmAccount || !prospectName.trim() || prospectCreating) return;
+    const account = actionResult?.account ?? crmAccount;
+    if (!account || !prospectName.trim() || prospectCreating) return;
     prospectCreating = true;
     try {
-      const res = await callAction('createOpportunity', {
+      const product = actionResult?.product;
+      await callAction('createOpportunity', {
         name: prospectName.trim(),
-        accountId: crmAccount.id,
+        accountId: account.id,
         description: prospectEmailDraft,
         leadSource: selectedOffer?.source || 'OTHER',
+        ...(product ? {
+          productId: product.id,
+          productName: product.name,
+          unitPrice: product.price,
+        } : {}),
       });
       toast.success('Opportunité créée');
       showProspectForm = false;
-      // Naviguer vers la fiche account pour voir l'opportunité
-      await goto(`/accounts/${crmAccount.id}`);
+      await goto(`/accounts/${account.id}`);
     } catch (err) {
       toast.error(err.message || 'Erreur création opportunité');
     } finally {
@@ -322,7 +364,9 @@
     try {
       const res = await callAction('crmAccount', { rid7: selectedOffer.rid7, create: 'true' });
       crmAccount = res.account;
-      toast.success(res.created ? 'Compte CRM créé' : 'Compte CRM existant retrouvé');
+      crmContacts = res.contacts ?? [];
+      const contactsMsg = crmContacts.length ? ` — ${crmContacts.length} contact(s) importé(s)` : '';
+      toast.success((res.created ? 'Compte CRM créé' : 'Compte CRM existant retrouvé') + contactsMsg);
     } catch (err) {
       toast.error(err.message || 'Erreur création compte CRM');
     } finally {
@@ -484,6 +528,21 @@
     }
   }
 
+  let isExtractingRidet = $state(false);
+  async function extractRidetPdf() {
+    if (!selectedOffer || !selectedOffer.rid7) return;
+    isExtractingRidet = true;
+    try {
+      const data = await callAction('extractRidetPdf', { rid7: selectedOffer.rid7 });
+      ridetDetail = data.result;
+      toast.success('Données RIDET extraites (PDF)');
+    } catch (err) {
+      toast.error(err.message || 'Erreur extraction PDF RIDET');
+    } finally {
+      isExtractingRidet = false;
+    }
+  }
+
   // ── Recherche intelligente RIDET ──────────────────────────────────────────────
   let fuzzyResults = $state([]);
   let showFuzzyDialog = $state(false);
@@ -590,6 +649,7 @@
           <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Contrat</th>
           <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Statut</th>
           <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Score</th>
+          <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Éval.</th>
           <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Publiée</th>
           <th class="px-4 py-2.5"></th>
         </tr>
@@ -617,6 +677,15 @@
               <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums {scoreColor(offer.score)}">
                 {offer.score}
               </span>
+            </td>
+            <td class="px-4 py-3">
+              {#if offer.eval_category}
+                <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {EVAL_COLORS[offer.eval_category] || ''}">
+                  {EVAL_LABELS[offer.eval_category] || offer.eval_category}
+                </span>
+              {:else}
+                <span class="text-muted-foreground/40 text-[11px]">—</span>
+              {/if}
             </td>
             <td class="px-4 py-3 text-muted-foreground tabular-nums">{formatDate(offer.date_published)}</td>
             <td class="px-4 py-3">
@@ -662,9 +731,24 @@
     <div class="flex items-start justify-between border-b px-5 py-4">
       <div class="min-w-0 pr-4">
         <h2 class="truncate font-semibold">{selectedOffer.title}</h2>
-        <p class="text-muted-foreground mt-0.5 text-sm">{selectedOffer.company_name || '—'}
-          {#if selectedOffer.rid7}<span class="font-mono text-xs"> · {selectedOffer.rid7}</span>{/if}
-        </p>
+        <div class="mt-0.5 flex items-center gap-2 flex-wrap">
+          {#if selectedOffer.rid7}
+            <a
+              href="/job-intel/ridet?q={selectedOffer.rid7}"
+              class="text-sm font-medium text-primary hover:underline"
+              title="Ouvrir la fiche RIDET"
+            >{selectedOffer.company_name || '—'}</a>
+            <span class="font-mono text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{selectedOffer.rid7}</span>
+          {:else}
+            <span class="text-sm text-muted-foreground">{selectedOffer.company_name || '—'}</span>
+          {/if}
+          {#if selectedOffer.url_external}
+            <a href={selectedOffer.url_external} target="_blank" rel="noopener noreferrer"
+               class="text-muted-foreground hover:text-foreground" title="Voir l'offre originale">
+              <ExternalLink class="size-3.5" />
+            </a>
+          {/if}
+        </div>
       </div>
       <Button variant="ghost" size="sm" onclick={closeDrawer} class="-mr-1 shrink-0">
         <X class="size-4" />
@@ -690,7 +774,28 @@
       <!-- ── Onglet Entreprise ── -->
       {#if drawerTab === 'liaison'}
         <div class="px-5 py-4 space-y-6">
-          
+
+          <!-- Navigation rapide -->
+          {#if selectedOffer.rid7}
+            <div class="flex gap-2 flex-wrap">
+              <a
+                href="/job-intel/ridet?q={selectedOffer.rid7}"
+                class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+              >
+                <Building2 class="size-3.5" />
+                Fiche RIDET
+              </a>
+              <a
+                href="/job-intel/offers?rid7={selectedOffer.rid7}"
+                onclick={closeDrawer}
+                class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+              >
+                <Search class="size-3.5" />
+                Toutes les offres
+              </a>
+            </div>
+          {/if}
+
           <!-- Recherche Automatique (Matching) -->
           <div class="flex items-center justify-between gap-4 p-3 rounded-lg border bg-primary/5">
             <div class="flex items-center gap-3">
@@ -718,15 +823,28 @@
             </div>
 
             {#if selectedOffer.rid7}
-              <Button 
-                variant="secondary" 
-                class="w-full gap-2 border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" 
+              <Button
+                variant="secondary"
+                class="w-full gap-2 border-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                onclick={extractRidetPdf}
+                disabled={isExtractingRidet}
+              >
+                {#if isExtractingRidet}
+                  <Loader2 class="size-4 animate-spin" />
+                  Extraction en cours…
+                {:else}
+                  <Sparkles class="size-4" />
+                  Consolider RIDET (PDF)
+                {/if}
+              </Button>
+              <Button
+                variant="secondary"
+                class="w-full gap-2 border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
                 onclick={consolidateRidet}
                 disabled={isConsolidating}
               >
                 {#if isConsolidating}
-                  <Loader2 
- class="size-4 animate-spin" />
+                  <Loader2 class="size-4 animate-spin" />
                   Consolidation en cours...
                 {:else}
                   <RefreshCw class="size-4" />
@@ -896,96 +1014,158 @@
             </div>
           {/if}
 
-          <!-- Compte CRM + Démarche -->
+          <!-- Action commerciale -->
           {#if selectedOffer.rid7}
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                {#if crmAccount}
+            <div class="space-y-3">
+
+              {#if actionResult}
+                <!-- ── Résultat de l'action ────────────────────────────────── -->
+
+                <!-- Catégorie évaluation -->
+                <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-800 dark:bg-amber-900/20">
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-1">Catégorie évaluation</p>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded">
+                      {actionResult.eval_category.code}
+                    </span>
+                    <span class="text-sm text-amber-700 dark:text-amber-400">{actionResult.eval_category.label}</span>
+                  </div>
+                  {#if actionResult.product}
+                    <p class="text-xs text-amber-600 dark:text-amber-500 mt-1.5">
+                      Produit : {actionResult.product.name}
+                      — {Number(actionResult.product.price).toLocaleString('fr-FR')} {actionResult.product.currency}
+                    </p>
+                  {/if}
+                </div>
+
+                <!-- Compte + Contacts -->
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <a
-                    href="/accounts/{crmAccount.id}"
+                    href="/accounts/{actionResult.account.id}"
                     class="inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
                   >
                     <Building2 class="size-3.5" strokeWidth={1.75} />
-                    {crmAccount.name}
+                    {actionResult.account.name}
+                    {#if actionResult.account.created}
+                      <span class="text-[10px] font-normal opacity-70">nouveau</span>
+                    {/if}
                     <ExternalLink class="size-3" />
                   </a>
-                  {#if !showProspectForm}
+                  {#each actionResult.contacts as c}
+                    <a
+                      href="/contacts/{c.id}"
+                      class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                    >
+                      {c.name}{c.title ? ` · ${c.title}` : ''}
+                    </a>
+                  {/each}
+                </div>
+
+                <!-- Générer l'email + Créer l'opportunité -->
+                {#if !showProspectForm}
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <button
+                      onclick={() => runAI('email-job').then(() => openProspectForm())}
+                      disabled={!!runningAction}
+                      class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {#if runningAction === 'email-job'}
+                        <Loader2 class="size-3.5 animate-spin" />
+                        Génération…
+                      {:else}
+                        <Mail class="size-3.5" strokeWidth={1.75} />
+                        Générer l'email
+                      {/if}
+                    </button>
                     <button
                       onclick={openProspectForm}
                       class="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
                     >
                       <Zap class="size-3.5" strokeWidth={1.75} />
-                      Démarrer la démarche
-                    </button>
-                  {/if}
-                {:else}
-                  <button
-                    onclick={linkCRMAccount}
-                    disabled={crmAccountLoading}
-                    class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
-                  >
-                    {#if crmAccountLoading}
-                      <Loader2 
- class="size-3.5 animate-spin" />
-                    {:else}
-                      <Building2 class="size-3.5" strokeWidth={1.75} />
-                    {/if}
-                    Créer compte CRM
-                  </button>
-                {/if}
-              </div>
-
-              <!-- Formulaire de démarche inline -->
-              {#if showProspectForm && crmAccount}
-                <div class="rounded-lg border bg-muted/30 p-4 space-y-3">
-                  <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Nouvelle opportunité — {crmAccount.name}
-                  </p>
-
-                  <div>
-                    <label class="text-xs text-muted-foreground">Nom de l'opportunité</label>
-                    <input
-                      type="text"
-                      bind:value={prospectName}
-                      class="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1"
-                    />
-                  </div>
-
-                  <div>
-                    <label class="text-xs text-muted-foreground">
-                      Email / Notes
-                      {#if offerAnalyses.find(a => a.analysis_type === 'email_job')}
-                        <span class="text-primary ml-1">· pré-rempli depuis l'analyse IA</span>
-                      {/if}
-                    </label>
-                    <textarea
-                      bind:value={prospectEmailDraft}
-                      rows="8"
-                      class="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 resize-y font-mono leading-relaxed"
-                    ></textarea>
-                  </div>
-
-                  <div class="flex items-center gap-2 pt-1">
-                    <button
-                      onclick={createProspect}
-                      disabled={prospectCreating || !prospectName.trim()}
-                      class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                      {#if prospectCreating}
-                        <Loader2 
- class="size-3.5 animate-spin" />
-                      {:else}
-                        <Zap class="size-3.5" strokeWidth={1.75} />
-                      {/if}
                       Créer l'opportunité
                     </button>
-                    <button
-                      onclick={() => (showProspectForm = false)}
-                      class="text-sm text-muted-foreground hover:text-foreground"
-                    >Annuler</button>
                   </div>
+                {:else}
+                  <div class="rounded-lg border bg-muted/30 p-4 space-y-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Nouvelle opportunité — {actionResult.account.name}
+                    </p>
+
+                    <div>
+                      <label class="text-xs text-muted-foreground" for="prospect-name">Nom de l'opportunité</label>
+                      <input
+                        id="prospect-name"
+                        type="text"
+                        bind:value={prospectName}
+                        class="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="text-xs text-muted-foreground" for="prospect-email">
+                        Email / Notes
+                        {#if offerAnalyses.find(a => a.analysis_type === 'email_job')}
+                          <span class="text-primary ml-1">· pré-rempli depuis l'analyse IA</span>
+                        {/if}
+                      </label>
+                      <textarea
+                        id="prospect-email"
+                        bind:value={prospectEmailDraft}
+                        rows="8"
+                        class="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 resize-y font-mono leading-relaxed"
+                      ></textarea>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1">
+                      <button
+                        onclick={createProspect}
+                        disabled={prospectCreating || !prospectName.trim()}
+                        class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      >
+                        {#if prospectCreating}
+                          <Loader2 class="size-3.5 animate-spin" />
+                        {:else}
+                          <Zap class="size-3.5" strokeWidth={1.75} />
+                        {/if}
+                        Confirmer
+                      </button>
+                      <button
+                        onclick={() => (showProspectForm = false)}
+                        class="text-sm text-muted-foreground hover:text-foreground"
+                      >Annuler</button>
+                    </div>
+                  </div>
+                {/if}
+
+              {:else}
+                <!-- ── Avant l'action ─────────────────────────────────────── -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  {#if crmAccount}
+                    <a
+                      href="/accounts/{crmAccount.id}"
+                      class="inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
+                    >
+                      <Building2 class="size-3.5" strokeWidth={1.75} />
+                      {crmAccount.name}
+                      <ExternalLink class="size-3" />
+                    </a>
+                  {/if}
+                  <button
+                    onclick={startAction}
+                    disabled={actionLoading}
+                    class="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                  >
+                    {#if actionLoading}
+                      <Loader2 class="size-3.5 animate-spin" />
+                      Classification en cours…
+                    {:else}
+                      <Zap class="size-3.5" strokeWidth={1.75} />
+                      Créer action commerciale
+                    {/if}
+                  </button>
                 </div>
               {/if}
+
             </div>
           {/if}
 

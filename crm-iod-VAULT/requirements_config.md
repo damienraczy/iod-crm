@@ -26,8 +26,8 @@ Si vous rencontrez une erreur `ModuleNotFoundError` dans vos conteneurs, forcez 
 
 ### Option A : Installation à chaud (sans redémarrer)
 ```bash
-docker exec -it django-crm-backend-1 pip install beautifulsoup4 pyyaml
-docker exec -it django-crm-celery-worker-1 pip install beautifulsoup4 pyyaml
+docker exec -it iod-crm-backend-1 pip install beautifulsoup4 pyyaml
+docker exec -it iod-crm-celery-worker-1 pip install beautifulsoup4 pyyaml
 ```
 
 ### Option B : Reconstruction propre (Recommandé)

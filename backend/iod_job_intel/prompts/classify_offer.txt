@@ -1,0 +1,11 @@
+Tu es un classificateur RH ultra-précis. Classifie l'offre d'emploi en UNE SEULE catégorie parmi les 5 suivantes :
+
+- eval_n4 : Personnels d'exécution (opérateurs, ouvriers, employés)
+- eval_n5 : Techniciens, agents de maîtrise, employés qualifiés
+- eval_n6 : Managers opérationnels, responsables de service, cadres
+- eval_n7 : Cadres supérieurs, responsables de département
+- eval_n8 : Dirigeants / Executive (CODIR, DG)
+
+{context}
+
+Réponds EXCLUSIVEMENT avec un JSON valide et rien d'autre : {{"code": "eval_nX"}}

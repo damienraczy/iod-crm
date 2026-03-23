@@ -18,22 +18,22 @@
 .theme-light {
 	/* Fonds : dégradés de vert très clair */
 	--background-primary: #fdfdfc;
-	--background-secondary: #fff0d2;
+	--background-secondary: #d1ddff;
 	--background-secondary-alt: #f77d3b;
 
     /* Window */
-    --titlebar-background: #f8a87c;
-    --titlebar-background-focused: #f77d3b;
+    --titlebar-background: #bcf5c8;
+    --titlebar-background-focused: #aafdbb;
     --titlebar-border-width: thin;
-    --titlebar-border-color: #f2c7b0;
-    --titlebar-text-color: #fdfdfc;
-    --titlebar-text-color-focused: #fdfdfc;
+    --titlebar-border-color: #f05705;
+    --titlebar-text-color: #1a7f33;
+    --titlebar-text-color-focused: #006118;
     --titlebar-text-weight: bold;
     --header-height: 12;
 
     /* Ribbon */
-    --ribbon-background: #f2c7b0;
-    --ribbon-background-collapsed: #f2c7b0;
+    --ribbon-background: #fdb086;
+    --ribbon-background-collapsed: #fdb086;
     --ribbon-width: 12 ;
     --ribbon-padding : 1 ;
   

@@ -11,6 +11,7 @@ Adapté depuis src/ai_service.py (app Qt) pour Django :
 import hashlib
 import json
 import os
+import re
 import time
 from typing import Any, Dict, Optional
 
@@ -212,7 +213,7 @@ class AIService:
     ) -> str:
         """Questions brûlantes sur les capacités organisationnelles de l'entreprise."""
         system_prompt = self._read_prompt("system_R6_O6_capacities")
-        template = self._read_prompt("questions_brulantes")
+        template = self._read_prompt("questions_brulantes_company")
         prompt = template.format(
             title=title or "Not specified",
             description=description or "Not provided",
@@ -276,6 +277,91 @@ class AIService:
             return response.json().get("response", "").strip()
         except Exception as e:
             raise RuntimeError(f"generate_email_general échoué : {e}") from e
+
+    def classify_offer(self, title: str, description: str, qualification: str = "", experience: str = "") -> str:
+        """
+        Classifie une offre d'emploi en eval_n4…eval_n8.
+        Utilise ai.model.classifier avec temperature=0.0.
+        Retourne le code (ex: 'eval_n5') ou lève RuntimeError.
+        """
+        valid_codes = {"eval_n4", "eval_n5", "eval_n6", "eval_n7", "eval_n8"}
+        model = _require_model("classifier")
+
+        context_parts = [f"Intitulé : {title}"]
+        if qualification:
+            context_parts.append(f"Qualification requise : {qualification}")
+        if experience:
+            context_parts.append(f"Expérience requise : {experience}")
+        if description:
+            context_parts.append(f"Description (extrait) : {description[:800]}")
+        context = "\n".join(context_parts)
+
+        template = self._read_prompt("classify_offer")
+        prompt = template.format(context=context)
+
+        headers = {"Authorization": f"Bearer {self._api_key}"}
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": 0.0},
+        }
+
+        try:
+            response = requests.post(
+                self.base_url, json=payload, headers=headers,
+                timeout=30, allow_redirects=False
+            )
+            if not response.ok:
+                raise RuntimeError(
+                    f"Ollama HTTP {response.status_code} : {response.text[:200]}"
+                )
+            raw = response.json().get("response", "")
+            if isinstance(raw, dict):
+                data = raw
+            else:
+                # Le modèle peut envelopper le JSON dans du markdown (```json ... ```)
+                # On extrait le premier objet JSON trouvé dans la réponse
+                match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
+                if not match:
+                    raise ValueError(f"Aucun JSON trouvé dans la réponse : {raw[:200]!r}")
+                data = json.loads(match.group(0))
+            code = data.get("code", "").strip()
+            if code not in valid_codes:
+                raise ValueError(f"Code inattendu du LLM : {code!r}")
+            return code
+        except Exception as e:
+            raise RuntimeError(f"classify_offer échoué : {e}") from e
+
+    def extract_ridet_pdf(self, pdf_text: str) -> dict:
+        """
+        Extrait les données structurées d'un texte issu d'un PDF Avis RIDET.
+        Retourne un dict avec les clés 'entreprise' et 'etablissement'.
+        Utilise le modèle classificateur (plus rapide, temperature=0.0).
+        """
+        template = self._read_prompt("extract_ridet_pdf")
+        prompt = template.format(pdf_text=pdf_text[:6000])
+
+        payload = {
+            "model": _require_model("classifier"),
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": 0.0},
+        }
+        try:
+            response = self._post_with_retry(payload)
+            raw = response.json().get("response", "")
+            if isinstance(raw, dict):
+                return raw
+            # Extraire le premier JSON imbriqué (peut être enveloppé en markdown)
+            match = re.search(r'\{.*\}', raw, re.DOTALL)
+            if not match:
+                raise ValueError(f"Aucun JSON dans la réponse : {raw[:200]!r}")
+            return json.loads(match.group(0))
+        except Exception as e:
+            raise RuntimeError(f"extract_ridet_pdf échoué : {e}") from e
 
     def generate_ice_breaker(
         self, company_name: str, job_title: str, language: str = "French"

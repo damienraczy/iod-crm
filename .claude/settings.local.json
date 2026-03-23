@@ -6,7 +6,9 @@
       "Bash(docker compose:*)",
       "Bash(curl -s http://localhost:3000/ready)",
       "Bash(curl -s http://localhost:3000/)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(head -20 ls /Users/damienraczy/dev/iod-crm/frontend/src/routes/\\\\\\(app\\\\\\)/job-intel/ridet/)",
+      "Bash(grep -E \"\\\\.\\(svelte|js|py\\)$\")"
     ]
   }
 }

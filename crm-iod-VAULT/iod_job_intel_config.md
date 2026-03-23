@@ -17,8 +17,8 @@ Doit être installé et tourner (en local ou via Docker).
 ### B. Dépendances Python (Crucial)
 Si vous rencontrez une erreur `ModuleNotFoundError: No module named 'bs4'`, installez les dépendances suivantes dans vos conteneurs :
 ```bash
-docker exec -it django-crm-backend-1 pip install beautifulsoup4 pyyaml
-docker exec -it django-crm-celery-worker-1 pip install beautifulsoup4 pyyaml
+docker exec -it iod-crm-backend-1 pip install beautifulsoup4 pyyaml
+docker exec -it iod-crm-celery-worker-1 pip install beautifulsoup4 pyyaml
 ```
 
 ---
@@ -46,22 +46,22 @@ Le système utilise ce référentiel pour lier les offres aux entreprises du CRM
 
 ```bash
 # Import complet (peut prendre 1-2 minutes)
-docker exec -it django-crm-backend-1 python manage.py load_ridet --url
+docker exec -it iod-crm-backend-1 python manage.py load_ridet --url
 
 # Test rapide (20 premiers seulement)
-docker exec -it django-crm-backend-1 python manage.py load_ridet --url --limit 20
+docker exec -it iod-crm-backend-1 python manage.py load_ridet --url --limit 20
 ```
 
 ### Étape 2 : Charger les Prompts de l'IA
 Importe les templates d'analyse et de rédaction d'e-mails pour Ollama.
 ```bash
-docker exec -it django-crm-backend-1 python manage.py load_prompts
+docker exec -it iod-crm-backend-1 python manage.py load_prompts
 ```
 
 ### Étape 3 : Lancer une collecte manuelle
 Pour collecter immédiatement toutes les offres de toutes les sources :
 ```bash
-docker exec -it django-crm-backend-1 python manage.py run_sync
+docker exec -it iod-crm-backend-1 python manage.py run_sync
 ```
 
 ---
@@ -77,7 +77,7 @@ Le système utilise **Celery Beat** pour les tâches récurrentes.
 
 **Pour forcer une tâche Celery manuellement :**
 ```bash
-docker exec -it django-crm-backend-1 python manage.py shell -c "from iod_job_intel.tasks.cron_tasks import collect_all_jobs; collect_all_jobs.delay()"
+docker exec -it iod-crm-backend-1 python manage.py shell -c "from iod_job_intel.tasks.cron_tasks import collect_all_jobs; collect_all_jobs.delay()"
 ```
 
 ---
@@ -85,7 +85,7 @@ docker exec -it django-crm-backend-1 python manage.py shell -c "from iod_job_int
 ## 6. Surveillance & Logs
 
 - **Logs de collecte (Temps réel)** : 
-  `docker logs -f django-crm-celery-worker-1`
+  `docker logs -f iod-crm-celery-worker-1`
 - **Historique en base** : 
   Consultez la table `ScrapeLog` dans l'interface d'administration Django (`/admin/iod_job_intel/scrapelog/`). Vous y verrez le nombre d'offres importées et les éventuelles erreurs par source.
 - **Erreurs DNS (gaierror)** : 

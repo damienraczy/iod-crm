@@ -443,41 +443,45 @@ class AIAnalysisViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         return qs.order_by("-created_at")
 
 
-class RidetCRMAccountView(APIView):
+# ---------------------------------------------------------------------------
+# Helpers partagés — Account + Contacts depuis RIDET
+# ---------------------------------------------------------------------------
+
+def _parse_dirigeant(raw: str):
+    """Parse 'Prénom Nom (Titre)' → (first_name, last_name, title)."""
+    title = ""
+    name_part = raw.strip()
+    if name_part.endswith(")") and "(" in name_part:
+        paren_start = name_part.rfind("(")
+        title = name_part[paren_start + 1:-1].strip()
+        name_part = name_part[:paren_start].strip()
+    parts = name_part.split()
+    if not parts:
+        return "", "", title
+    if len(parts) == 1:
+        return "", parts[0], title
+    return " ".join(parts[:-1]), parts[-1], title
+
+
+def _ensure_crm_account(rid7: str, org, user, profile):
     """
-    Cherche ou crée un Account CRM depuis un RIDET.
-
-    GET  /api/iod/ridet/<rid7>/crm-account/
-         → {"found": true/false, "account": {id, name, rid7}}
-    POST /api/iod/ridet/<rid7>/crm-account/
-         → crée l'Account si inexistant, retourne toujours {id, name, rid7}
+    Trouve ou crée l'Account CRM pour un RID7, puis synchronise les contacts
+    dirigeants depuis RidetEntry. Retourne (account, account_created, contacts_data).
     """
-    permission_classes = [IsAuthenticated]
+    from accounts.models import Account
+    from contacts.models import Contact
 
-    def _account_data(self, account):
-        return {"id": str(account.id), "name": account.name, "rid7": account.rid7}
+    account = Account.objects.filter(rid7=rid7, org=org).first()
+    account_created = False
 
-    def get(self, request, rid7: str):
-        from accounts.models import Account
-        account = Account.objects.filter(rid7=rid7).first()
-        if account:
-            return Response({"found": True, "account": self._account_data(account)})
-        return Response({"found": False, "account": None})
-
-    def post(self, request, rid7: str):
-        from accounts.models import Account
-        account = Account.objects.filter(rid7=rid7).first()
-        if account:
-            return Response({"created": False, "account": self._account_data(account)}, status=status.HTTP_200_OK)
-
+    if not account:
         ridet = RidetEntry.objects.filter(rid7=rid7).first()
         name = (ridet.denomination or ridet.enseigne or rid7) if ridet else rid7
         city = ridet.commune if ridet else ""
 
-        # Vérifie l'unicité du nom dans l'org (contrainte Account)
         base_name = name
         suffix = 1
-        while Account.objects.filter(name__iexact=name, org=request.profile.org).exists():
+        while Account.objects.filter(name__iexact=name, org=org).exists():
             name = f"{base_name} ({suffix})"
             suffix += 1
 
@@ -486,11 +490,76 @@ class RidetCRMAccountView(APIView):
             rid7=rid7,
             city=city,
             description=f"Créé depuis l'offre Job Intel — RIDET {rid7}",
-            org=request.profile.org,
-            created_by=request.profile.user,
+            org=org,
+            created_by=user,
         )
-        account.assigned_to.add(request.profile)
-        return Response({"created": True, "account": self._account_data(account)}, status=status.HTTP_201_CREATED)
+        account.assigned_to.add(profile)
+        account_created = True
+
+    # Contacts dirigeants
+    ridet = RidetEntry.objects.filter(rid7=rid7).first()
+    contacts_data = []
+    if ridet and ridet.dirigeants:
+        for raw in ridet.dirigeants:
+            first_name, last_name, title = _parse_dirigeant(raw)
+            if not last_name:
+                continue
+            contact, _ = Contact.objects.get_or_create(
+                first_name=first_name,
+                last_name=last_name,
+                org=org,
+                defaults={
+                    "title": title,
+                    "organization": account.name,
+                    "account": account,
+                    "created_by": user,
+                },
+            )
+            if contact.account_id != account.id:
+                contact.account = account
+                contact.save(update_fields=["account"])
+            contacts_data.append({
+                "id": str(contact.id),
+                "name": f"{first_name} {last_name}".strip(),
+                "title": contact.title or "",
+            })
+
+    return account, account_created, contacts_data
+
+
+class RidetCRMAccountView(APIView):
+    """
+    Cherche ou crée un Account CRM depuis un RIDET.
+
+    GET  /api/iod/ridet/<rid7>/crm-account/
+         → {"found": true/false, "account": {id, name, rid7}}
+    POST /api/iod/ridet/<rid7>/crm-account/
+         → crée l'Account si inexistant, retourne {created, account, contacts}
+    """
+    permission_classes = [IsAuthenticated]
+
+    def _account_data(self, account):
+        return {"id": str(account.id), "name": account.name, "rid7": account.rid7}
+
+    def get(self, request, rid7: str):
+        from accounts.models import Account
+        account = Account.objects.filter(rid7=rid7, org=request.profile.org).first()
+        if account:
+            return Response({"found": True, "account": self._account_data(account)})
+        return Response({"found": False, "account": None})
+
+    def post(self, request, rid7: str):
+        account, created, contacts_data = _ensure_crm_account(
+            rid7, request.profile.org, request.profile.user, request.profile
+        )
+        return Response(
+            {
+                "created": created,
+                "account": self._account_data(account),
+                "contacts": contacts_data,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class RidetSearchView(APIView):
@@ -510,8 +579,137 @@ class RidetSearchView(APIView):
             )
         entries = RidetEntry.objects.filter(
             Q(denomination__icontains=q) | Q(enseigne__icontains=q) | Q(sigle__icontains=q)
-        )[:20]
+        )[:50]
         return Response(RidetEntrySerializer(entries, many=True).data)
+
+
+class StartActionView(APIView):
+    """
+    Orchestre la création d'une action commerciale depuis une offre Job Intel.
+
+    POST /api/iod/offers/<pk>/start-action/
+
+    Étapes :
+      1. Classifie l'offre → eval_nX  (sauvegardé sur l'offre)
+      2. Trouve ou crée l'Account CRM + Contacts dirigeants
+      3. Trouve le produit eval_nX de l'org
+
+    Retourne tout en une réponse. L'humain valide et crée ensuite l'opportunité.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk: int):
+        from iod_job_intel.models import EVAL_CATEGORY_LABELS
+        from iod_job_intel.services.ai_service import AIService
+
+        offer = JobOffer.objects.filter(pk=pk).first()
+        if not offer:
+            return Response({"detail": "Offre introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not offer.rid7:
+            return Response(
+                {"detail": "Cette offre n'a pas de RID7 — impossible de créer une action commerciale."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        org = request.profile.org
+
+        # ── 1. Classification ──────────────────────────────────────────────────
+        try:
+            svc = AIService()
+        except RuntimeError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            code = svc.classify_offer(
+                title=offer.title,
+                description=offer.description,
+                qualification=offer.qualification,
+                experience=offer.experience_req,
+            )
+        except RuntimeError as e:
+            logger.error("[start-action] classify #%s : %s", pk, e)
+            return Response({"detail": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        offer.eval_category = code
+        offer.save(update_fields=["eval_category", "updated_at"])
+
+        # ── 2. Account + Contacts ──────────────────────────────────────────────
+        account, account_created, contacts_data = _ensure_crm_account(
+            offer.rid7, org, request.profile.user, request.profile
+        )
+
+        # ── 3. Produit eval_nX ─────────────────────────────────────────────────
+        product_data = None
+        try:
+            from invoices.models import Product
+            product = Product.objects.get(sku=code, org=org)
+            product_data = {
+                "id": str(product.id),
+                "name": product.name,
+                "price": str(product.price),
+                "currency": product.currency,
+            }
+        except Exception:
+            pass  # non-bloquant : le produit peut ne pas exister encore
+
+        return Response({
+            "eval_category": {
+                "code": code,
+                "label": EVAL_CATEGORY_LABELS.get(code, code),
+            },
+            "account": {
+                "id": str(account.id),
+                "name": account.name,
+                "rid7": account.rid7,
+                "created": account_created,
+            },
+            "contacts": contacts_data,
+            "product": product_data,
+        })
+
+
+class ClassifyOfferView(APIView):
+    """
+    Classifie une offre d'emploi via le LLM classificateur (ministral-3b-cloud).
+
+    POST /api/iod/offers/<pk>/classify/
+    → {"code": "eval_n5", "label": "Techniciens, agents de maîtrise"}
+    Sauvegarde le résultat dans JobOffer.eval_category.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk: int):
+        from iod_job_intel.models import EVAL_CATEGORY_LABELS
+        from iod_job_intel.services.ai_service import AIService
+
+        offer = JobOffer.objects.filter(pk=pk).first()
+        if not offer:
+            return Response({"detail": "Offre introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            svc = AIService()
+        except RuntimeError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            code = svc.classify_offer(
+                title=offer.title,
+                description=offer.description,
+                qualification=offer.qualification,
+                experience=offer.experience_req,
+            )
+        except RuntimeError as e:
+            logger.error("[classify] offre #%s : %s", pk, e)
+            return Response({"detail": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        offer.eval_category = code
+        offer.save(update_fields=["eval_category", "updated_at"])
+
+        return Response({
+            "code": code,
+            "label": EVAL_CATEGORY_LABELS.get(code, code),
+        })
 
 
 class ScrapeLogViewSet(ReadOnlyModelViewSet):
@@ -622,7 +820,8 @@ class RidetConsolidateView(APIView):
             entry.code_naf = data.get("code_naf", "")
             entry.activite_principale = data.get("activite_principale", "")
             entry.dirigeants = data.get("dirigeants", [])
-            entry.save()
+            # update_fields explicite : description (saisi manuellement) n'est jamais écrasé
+            entry.save(update_fields=["adresse", "code_naf", "activite_principale", "dirigeants", "updated_at"])
 
             return Response(RidetEntrySerializer(entry).data)
         except Exception as e:
@@ -633,16 +832,93 @@ class RidetConsolidateView(APIView):
             )
 
 
-class RidetDetailView(APIView):
-    """Récupère les informations d'un établissement stockées localement."""
+class RidetExtractView(APIView):
+    """
+    Consolide un établissement depuis avisridet.isee.nc (PDF → LLM → JSON).
+    POST /api/iod/ridet/<rid7>/extract-ridet/
+    """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, rid7):
+    def post(self, request, rid7):
+        from iod_job_intel.scrapers.avisridet_nc import AvisRidetScraper
+        from iod_job_intel.services.ai_service import AIService
+
         try:
-            entry = RidetEntry.objects.get(rid7=rid7)
-            return Response(RidetEntrySerializer(entry).data)
+            entry, _ = RidetEntry.objects.get_or_create(rid7=rid7)
+
+            pdf_text = AvisRidetScraper(rid7).run()
+            if not pdf_text:
+                return Response(
+                    {"detail": "Aucun document trouvé sur avisridet.isee.nc pour ce RID7."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            data = AIService().extract_ridet_pdf(pdf_text)
+
+            entreprise   = data.get("entreprise") or {}
+            etablissement = data.get("etablissement") or {}
+
+            # Mise à jour des champs — description jamais écrasée
+            update_fields = ["updated_at"]
+            def _set(field, value):
+                if value:
+                    setattr(entry, field, value)
+                    update_fields.append(field)
+
+            _set("denomination",        entreprise.get("raison_sociale", ""))
+            _set("sigle",               entreprise.get("sigle", ""))
+            _set("forme_juridique",     entreprise.get("forme_juridique", ""))
+            _set("enseigne",            etablissement.get("enseigne", ""))
+            _set("adresse",             etablissement.get("adresse", ""))
+            _set("commune",             etablissement.get("ville", ""))
+            _set("code_naf",            etablissement.get("code_ape", ""))
+            _set("activite_principale", etablissement.get("libelle_APE", "")
+                                        or etablissement.get("activite_principale (APE)", ""))
+
+            entry.save(update_fields=list(set(update_fields)))
+
+            return Response({
+                "entry": RidetEntrySerializer(entry).data,
+                "raw": data,
+            })
+        except Exception as e:
+            logger.error(f"CRASH RidetExtract {rid7}: {e}\n{traceback.format_exc()}")
+            return Response(
+                {"detail": f"Erreur : {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class RidetDetailView(APIView):
+    """
+    GET   /api/iod/ridet/<rid7>/  → détails d'un établissement
+    PATCH /api/iod/ridet/<rid7>/  → mise à jour de la description uniquement
+    """
+    permission_classes = [IsAuthenticated]
+
+    def _get_entry(self, rid7):
+        try:
+            return RidetEntry.objects.get(rid7=rid7)
         except RidetEntry.DoesNotExist:
+            return None
+
+    def get(self, request, rid7):
+        entry = self._get_entry(rid7)
+        if not entry:
             return Response({"detail": "Non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(RidetEntrySerializer(entry).data)
+
+    def patch(self, request, rid7):
+        entry = self._get_entry(rid7)
+        if not entry:
+            return Response({"detail": "Non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+        # Seul le champ description est modifiable via cet endpoint
+        description = request.data.get("description")
+        if description is None:
+            return Response({"detail": "Champ 'description' requis."}, status=status.HTTP_400_BAD_REQUEST)
+        entry.description = description
+        entry.save(update_fields=["description", "updated_at"])
+        return Response(RidetEntrySerializer(entry).data)
 
 
 class RidetRefreshView(APIView):

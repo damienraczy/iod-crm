@@ -129,18 +129,29 @@ class InfogreffeScraper:
         # Activité
         naf = company_data.get("activite_naf") or {}
 
-        # Dirigeants
+        # Dirigeants (personnes physiques ET morales)
         managers = []
         for person in fonctions_data.get("data") or []:
             if not person.get("active", True):
                 continue
-            pp = person.get("personne_physique") or {}
-            nom = pp.get("nom_usage") or pp.get("nom_patronymique", "")
-            prenom = pp.get("premier_prenom", "")
-            organe = person.get("organe") or {}
+            organe  = person.get("organe") or {}
             qualite = (organe.get("qualite") or {}).get("libelle", "Dirigeant")
+
+            pp = person.get("personne_physique") or {}
+            nom    = pp.get("nom_usage") or pp.get("nom_patronymique", "")
+            prenom = pp.get("premier_prenom", "")
             if nom:
                 managers.append(f"{prenom} {nom} ({qualite})".strip())
+                continue
+
+            pm = person.get("personne_morale") or {}
+            denomination = pm.get("denomination") or pm.get("raison_sociale", "")
+            sigle        = pm.get("sigle") or pm.get("abréviation") or pm.get("abreviation", "")
+            if denomination:
+                label = denomination
+                if sigle:
+                    label += f" ({sigle})"
+                managers.append(f"{label} — {qualite}")
 
         return {
             "adresse": address,

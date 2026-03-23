@@ -1,7 +1,7 @@
 # iod_job_intel — Intelligence Marché de l'Emploi NC
 
 Application Django 5.2 intégrée à django-crm. Elle collecte et centralise les offres d'emploi
-publiées en Nouvelle-Calédonie depuis quatre sources, les enrichit via un LLM local (Ollama),
+publiées en Nouvelle-Calédonie depuis quatre sources, les enrichit via un LLM (Ollama cloud),
 et expose les données via une API REST protégée par JWT.
 
 ---
@@ -50,6 +50,7 @@ ETablissements) de la Nouvelle-Calédonie. C'est une clé naturelle — pas de `
 django-crm                     iod_job_intel
 ──────────                     ─────────────
 Account.ridet  ←── rid7 ───→  JobOffer.rid7
+                               RidetEntry.rid7
                                AIAnalysis.rid7
 ```
 
@@ -69,12 +70,12 @@ Account.ridet  ←── rid7 ───→  JobOffer.rid7
 ```
 iod_job_intel/
 ├── apps.py                  # AppConfig, charge les signaux au démarrage
-├── models.py                # 6 modèles Django ORM
+├── models.py                # 7 modèles Django ORM
 ├── admin.py                 # Interface d'administration
 ├── signals.py               # Signal job_offer_created
 │
 ├── services/
-│   ├── ai_service.py        # Appels LLM via Ollama
+│   ├── ai_service.py        # Appels LLM via Ollama cloud
 │   ├── ridet_service.py     # Index mémoire du référentiel RIDET
 │   └── analysis_service.py  # Score de priorité, intensité de recrutement
 │
@@ -83,7 +84,9 @@ iod_job_intel/
 │   ├── gouv_nc.py           # OpenDataSoft API
 │   ├── province_sud.py      # Province Sud (2 passes)
 │   ├── job_nc.py            # Job.nc Drupal (2 passes)
-│   └── lemploi_nc.py        # L'Emploi.nc JSON-LD (2 passes)
+│   ├── lemploi_nc.py        # L'Emploi.nc JSON-LD (2 passes)
+│   ├── infogreffe_nc.py     # Infogreffe.nc — dirigeants et données légales
+│   └── avisridet_nc.py      # avisridet.isee.nc — PDF Avis de situation RIDET
 │
 ├── api/
 │   ├── serializers.py       # Sérialiseurs DRF
@@ -93,12 +96,15 @@ iod_job_intel/
 ├── management/commands/
 │   ├── run_sync.py          # Lance un ou plusieurs scrapers
 │   ├── load_ridet.py        # Charge le référentiel RIDET
-│   └── load_prompts.py      # Charge les prompts .txt en base
+│   ├── load_prompts.py      # Charge les prompts .txt en base
+│   └── seed_eval_products.py# Crée les produits évaluation eval_n4…eval_n8
 │
 ├── prompts/                 # Templates de prompts Ollama (fichiers fallback)
 │   ├── skill_analysis.txt
 │   ├── offer_diagnostic.txt
-│   ├── questions_brulantes.txt
+│   ├── classify_offer.txt
+│   ├── extract_ridet_pdf.txt
+│   ├── questions_brulantes_company.txt
 │   ├── questions_brulantes_offre.txt
 │   ├── email_prospect_job.txt
 │   ├── email_prospect_general.txt
@@ -106,7 +112,7 @@ iod_job_intel/
 │   ├── system_R6_I6_skills.txt
 │   └── system_R6_O6_capacities.txt
 │
-├── migrations/              # Migrations Django
+├── migrations/              # Migrations Django (dont migrations de données)
 └── tests/
     ├── test_models.py
     ├── test_services.py
@@ -133,6 +139,24 @@ BaseScraper.run()
   └── _finalize_log()              # ScrapeLog.finalize()
 ```
 
+### Flux de consolidation RIDET
+
+```
+Frontend (bouton "Consolider RIDET")
+  │
+  ├── POST /api/iod/ridet/<rid7>/consolidate/
+  │     → InfogreffeScraper.fetch(rid7)
+  │       → dirigeants, adresse, code_naf, activite_principale
+  │
+  └── POST /api/iod/ridet/<rid7>/extract-ridet/
+        → AvisRidetScraper(rid7).run()
+          → Playwright + Browserless → avisridet.isee.nc
+          → PDF téléchargé → pdfplumber → texte extrait
+          → AIService.extract_ridet_pdf(text)
+            → LLM (classifier, temperature=0.0) → JSON structuré
+          → RidetEntry.save() (update_fields sans description)
+```
+
 ---
 
 ## 3. Modèles de données
@@ -153,6 +177,7 @@ Offre d'emploi importée depuis une source externe.
 | `location`       | CharField(100)              | Localisation géographique                            |
 | `experience_req` | CharField(100)              | Expérience requise (texte libre)                     |
 | `education_req`  | TextField                   | Formation requise                                    |
+| `qualification`  | CharField(100)              | Qualification requise                                |
 | `nb_postes`      | PositiveSmallIntegerField   | Nombre de postes ouverts                             |
 | `url_external`   | URLField(500)               | URL de l'offre sur la source                         |
 | `skills_json`    | JSONField                   | Liste de compétences structurées                     |
@@ -160,11 +185,11 @@ Offre d'emploi importée depuis une source externe.
 | `date_published` | DateTimeField               | Date de publication                                  |
 | `status`         | TextChoices                 | `NEW`, `PUBLIEE`, `ARCHIVEE`                         |
 | `score`          | PositiveSmallIntegerField   | Score de priorité 0–100                              |
+| `eval_category`  | CharField(10)               | Classification LLM : `eval_n4`…`eval_n8`             |
 | `rid7`           | CharField(20)               | Pivot vers django-crm (pas de FK)                    |
 | `company_name`   | CharField(255)              | Nom de l'entreprise tel que publié                   |
 
-**Contrainte d'unicité :** `unique_together = [("external_id", "source")]` — le même
-`external_id` peut exister sur deux sources différentes.
+**Contrainte d'unicité :** `unique_together = [("external_id", "source")]`
 
 **Score de priorité** (calculé par `AnalysisService.calculate_score()`) :
 
@@ -178,35 +203,53 @@ Offre d'emploi importée depuis une source externe.
 | Multi-postes (nb_postes ≥ 2) | +10    |
 | **Plafond**                  | **100**|
 
+**Catégories d'évaluation (`eval_category`)** — remplies par le LLM classificateur :
+
+| Code      | Libellé                          |
+|:----------|:---------------------------------|
+| `eval_n4` | Personnels d'exécution           |
+| `eval_n5` | Techniciens, agents de maîtrise  |
+| `eval_n6` | Managers opérationnels           |
+| `eval_n7` | Cadres supérieurs                |
+| `eval_n8` | Dirigeants / Executive           |
+
 ---
 
 ### RidetEntry
 
-Entrée du registre officiel RIDET des établissements actifs en Nouvelle-Calédonie.
+Entrée du registre officiel RIDET. Enrichie progressivement via Infogreffe et PDF RIDET.
 
-| Champ              | Type           | Description                              |
-|:-------------------|----------------|:-----------------------------------------|
-| `rid7`             | CharField(20)  | Numéro RIDET à 7 chiffres (unique)       |
-| `denomination`     | CharField(255) | Raison sociale officielle                |
-| `sigle`            | CharField(100) | Sigle ou abréviation                     |
-| `enseigne`         | CharField(255) | Nom commercial (enseigne)                |
-| `date_etablissement`| DateField     | Date de création de l'établissement      |
-| `commune`          | CharField(100) | Commune                                  |
-| `province`         | CharField(100) | Province (Sud, Nord, Îles)               |
-| `forme_juridique`  | CharField(100) | SA, SARL, SAS, EURL, etc.               |
+| Champ                | Type           | Source              | Description                              |
+|:---------------------|----------------|:--------------------|:-----------------------------------------|
+| `rid7`               | CharField(20)  | CSV RIDET           | Numéro RIDET à 7 chiffres (unique)       |
+| `denomination`       | CharField(255) | CSV / PDF           | Raison sociale officielle                |
+| `sigle`              | CharField(100) | CSV / PDF           | Sigle ou abréviation                     |
+| `enseigne`           | CharField(255) | CSV / PDF           | Nom commercial (enseigne)                |
+| `date_etablissement` | DateField      | CSV RIDET           | Date de création de l'établissement      |
+| `commune`            | CharField(100) | CSV / PDF RIDET     | Commune (ville)                          |
+| `province`           | CharField(100) | CSV RIDET           | Province (Sud, Nord, Îles)               |
+| `forme_juridique`    | CharField(100) | CSV / PDF           | SA, SARL, SAS, EURL, etc.               |
+| `adresse`            | TextField      | Infogreffe          | Adresse complète                         |
+| `code_naf`           | CharField(10)  | Infogreffe / PDF    | Code APE / NAF                           |
+| `activite_principale`| TextField      | Infogreffe / PDF    | Libellé de l'activité principale         |
+| `dirigeants`         | JSONField      | Infogreffe          | Liste de dirigeants (personne physique ou morale) |
+| `description`        | TextField      | Manuel (frontend)   | Contexte éditorial — alimente les analyses IA |
+
+> **Important** : `description` est saisie manuellement dans le frontend et ne doit **jamais**
+> apparaître dans `update_fields` lors d'une mise à jour automatisée (consolidation, extraction PDF).
 
 ---
 
 ### AIAnalysis
 
-Résultat d'une analyse LLM Ollama. Peut être lié à une offre ou à un rid7.
+Résultat d'une analyse LLM. Peut être lié à une offre ou à un rid7.
 
 | Champ           | Type           | Description                                         |
 |:----------------|----------------|:----------------------------------------------------|
 | `job_offer`     | FK → JobOffer  | Nullable — analyse liée à une offre                 |
 | `rid7`          | CharField(20)  | Nullable — analyse liée à une entreprise            |
 | `analysis_type` | TextChoices    | Type d'analyse (voir ci-dessous)                    |
-| `model_used`    | CharField(100) | Modèle Ollama utilisé (ex. `qwen3:latest`)          |
+| `model_used`    | CharField(100) | Modèle Ollama utilisé                               |
 | `prompt_hash`   | CharField(64)  | SHA-256 du prompt (cache / déduplication)           |
 | `result_text`   | TextField      | Réponse brute du LLM                                |
 | `result_json`   | JSONField      | Réponse parsée si JSON valide                       |
@@ -223,6 +266,7 @@ Résultat d'une analyse LLM Ollama. Peut être lié à une offre ou à un rid7.
 | `email_job`            | Email de prospection lié à une offre spécifique     |
 | `email_general`        | Email de prospection général entreprise             |
 | `ice_breaker`          | Phrase d'accroche personnalisée                     |
+| `eval_category`        | Classification niveau évaluation eval_n4…eval_n8   |
 
 ---
 
@@ -230,12 +274,15 @@ Résultat d'une analyse LLM Ollama. Peut être lié à une offre ou à un rid7.
 
 Templates de prompts Ollama stockés en base et modifiables via l'admin Django.
 
-| Champ        | Type          | Description                                       |
-|:-------------|---------------|:--------------------------------------------------|
-| `name`       | SlugField     | Identifiant unique (ex. `skill_analysis`)         |
-| `template`   | TextField     | Corps du prompt avec variables `{variable}`       |
-| `is_system`  | BooleanField  | `True` = system prompt Ollama                     |
-| `version`    | SmallIntegerField | Numéro de version                             |
+| Champ        | Type              | Description                                       |
+|:-------------|-------------------|:--------------------------------------------------|
+| `name`       | SlugField         | Identifiant unique (ex. `skill_analysis`)         |
+| `template`   | TextField         | Corps du prompt avec variables `{variable}`       |
+| `is_system`  | BooleanField      | `True` = system prompt Ollama                     |
+| `version`    | SmallIntegerField | Numéro de version                                 |
+
+Les prompts sont chargés via des **data migrations** Django (pas via `load_prompts` au runtime).
+Le service `_read_prompt(name)` cherche d'abord en base, puis se rabat sur le fichier `.txt`.
 
 ---
 
@@ -263,21 +310,42 @@ Configuration dynamique clé/valeur (remplace un fichier `config.yaml`).
 
 ```python
 # Lecture
-AppParameter.get("ai.default_model")              # → str | None
-AppParameter.get("ai.default_model", "llama3.2")  # → str avec défaut
+AppParameter.get("ai.model.general")              # → str | None
+AppParameter.get("ai.model.general", "llama3.2")  # → str avec défaut
 AppParameter.get_int("scraper.gouv_nc.limit", 50) # → int
 AppParameter.get_float("scraper.delay", 1.0)      # → float
 ```
 
 **Paramètres reconnus :**
 
-| Clé                            | Défaut        | Description                           |
-|:-------------------------------|:--------------|:--------------------------------------|
-| `ai.default_model`             | (settings)    | Modèle Ollama par défaut              |
-| `ai.timeout`                   | `60`          | Timeout HTTP vers Ollama (secondes)   |
-| `scraper.gouv_nc.limit`        | `50`          | Nombre max d'offres GOUV_NC           |
-| `scraper.jobnc.anteriorite_jours` | `30`       | Fenêtre temporelle Job.nc (jours)     |
-| `scraper.request_delay`        | `1.0`         | Délai entre requêtes scraper (s)      |
+| Clé                            | Défaut        | Description                               |
+|:-------------------------------|:--------------|:------------------------------------------|
+| `ai.model.general`             | (requis)      | Modèle Ollama principal (analyses, emails)|
+| `ai.model.classifier`          | (requis)      | Modèle Ollama classificateur (rapide, temperature=0) |
+| `ai.timeout`                   | `300`         | Timeout HTTP vers Ollama (secondes)       |
+| `scraper.gouv_nc.limit`        | `50`          | Nombre max d'offres GOUV_NC               |
+| `scraper.jobnc.anteriorite_jours` | `30`       | Fenêtre temporelle Job.nc (jours)         |
+| `scraper.request_delay`        | `1.0`         | Délai entre requêtes scraper (s)          |
+
+> `ai.model.general` et `ai.model.classifier` sont **obligatoires** — `_require_model()` lève
+> une `RuntimeError` si absents. Les ajouter via l'admin ou l'API paramètres.
+
+---
+
+### JobSource
+
+Table admin-éditable des sources d'offres d'emploi. Remplace le tuple `LEAD_SOURCE` hardcodé.
+
+| Champ       | Type          | Description                                    |
+|:------------|---------------|:-----------------------------------------------|
+| `code`      | CharField(20) | Code interne (ex: `JOB_NC`) — unique           |
+| `label`     | CharField(100)| Libellé affiché (ex: `Job.nc`)                 |
+| `url`       | URLField      | URL du site source                             |
+| `is_active` | BooleanField  | Si `False`, la source n'apparaît pas dans les filtres |
+
+```python
+JobSource.label_for("JOB_NC")  # → "Job.nc"
+```
 
 ---
 
@@ -285,42 +353,52 @@ AppParameter.get_float("scraper.delay", 1.0)      # → float
 
 ### AIService (`services/ai_service.py`)
 
-Wrapper autour de l'API REST Ollama (`POST /api/generate`).
+Wrapper autour de l'API REST Ollama cloud (`POST` vers `OLLAMA_CLOUD_URL`).
+Requiert `OLLAMA_CLOUD_URL` et `OLLAMA_API_KEY` dans `.env.docker`.
 
 ```python
 from iod_job_intel.services.ai_service import AIService
 
-svc = AIService()  # modèle lu depuis AppParameter ou settings.OLLAMA_DEFAULT_MODEL
+svc = AIService()
 
 # Analyse des compétences critiques (retourne dict avec clé "critical_skills")
 result = svc.analyze_offer(title, experience, skills, language)
 
 # Diagnostic de l'offre (retourne str)
-diagnostic = svc.diagnose_offer(title, description, contract_type, language)
+diagnostic = svc.diagnose_offer(title, location, description, experience, education, language)
 
 # Questions brûlantes sur l'offre (retourne str)
-questions = svc.generate_questions_brulantes_offre(title, experience, education, language)
+questions = svc.generate_questions_brulantes_offre(
+    title, education, description, skills, activities, company_context, language
+)
 
 # Questions brûlantes sur la capacité organisationnelle (retourne str)
-questions = svc.generate_questions_brulantes(company_name, activity, language)
+questions = svc.generate_questions_brulantes(title, description, company_context, language)
 
 # Email de prospection lié à une offre (retourne str)
 email = svc.generate_email(title, source, contact_name, questions_brulantes, language)
 
 # Email de prospection général (retourne str)
-email = svc.generate_email_general(company_name, activity, contact_name, language)
+email = svc.generate_email_general(company_name, contact_name, questions_brulantes, language)
 
 # Phrase d'accroche (retourne str)
-ice = svc.generate_ice_breaker(company_name, activity, language)
+ice = svc.generate_ice_breaker(company_name, job_title, language)
+
+# Classification évaluation (retourne "eval_n4"…"eval_n8")
+code = svc.classify_offer(title, description, qualification, experience)
+
+# Extraction structurée d'un PDF Avis RIDET (retourne dict)
+data = svc.extract_ridet_pdf(pdf_text)
 ```
+
+**Résolution des modèles :**
+- `svc.analyze_offer()`, `generate_*`, `diagnose_*` → `ai.model.general`
+- `svc.classify_offer()`, `extract_ridet_pdf()` → `ai.model.classifier` (temperature=0.0)
 
 **Résolution des prompts** (par ordre de priorité) :
 
 1. `PromptTemplate.objects.get(name=<slug>)` — base de données (modifiable via admin)
 2. `iod_job_intel/prompts/<slug>.txt` — fichier de fallback
-
-**Mécanisme de retry** : `_post_with_retry(payload, max_retries=3)` — relance automatiquement
-en cas de `ConnectionError` avec backoff linéaire (délai × numéro de tentative).
 
 ---
 
@@ -375,7 +453,7 @@ result = svc.get_company_recruitment_intensity(rid7)
 
 ### BaseScraper (`scrapers/base.py`)
 
-Classe abstraite dont héritent tous les scrapers.
+Classe abstraite dont héritent tous les scrapers offres d'emploi.
 
 ```python
 class MonScraper(BaseScraper):
@@ -404,58 +482,83 @@ class MonScraper(BaseScraper):
 Source : API OpenDataSoft v2.1 — dataset `historique_emploi_gouv_nc` sur data.gouv.nc.
 
 - Authentification : aucune (API publique)
-- Paramètre `limit` : nombre d'offres à récupérer (défaut : `AppParameter.get_int("scraper.gouv_nc.limit", 50)`)
+- Paramètre `limit` : `AppParameter.get_int("scraper.gouv_nc.limit", 50)` (défaut 50)
 - Format `external_id` : champ `identifiant` de l'API
-
-```bash
-python manage.py run_sync --sources GOUV_NC --limit 100
-```
 
 ---
 
 ### ProvinceSudScraper (`scrapers/province_sud.py`)
 
-Source : [emploi.province-sud.nc](https://emploi.province-sud.nc)
+Source : emploi.province-sud.nc
 
-**Passe 1** — collecte des identifiants depuis la page de liste HTML :
-- Regex sur les liens `/offres/OF-YYYY-MM-NNN`
+**Passe 1** — collecte des identifiants depuis la page de liste HTML (regex `/offres/OF-YYYY-MM-NNN`)
 
-**Passe 2** — détail via l'API Boost JSON :
-- URL : `/api/offres/{id}`
-- Extraction enseigne / raison sociale depuis le format `NOM ENSEIGNE (RAISON SOCIALE)`
-
-Format `external_id` : `OF-YYYY-MM-NNN` (ex. `OF-2024-11-042`)
+**Passe 2** — détail via l'API Boost JSON `/api/offres/{id}`
 
 ---
 
 ### JobNCScraper (`scrapers/job_nc.py`)
 
-Source : [job.nc](https://www.job.nc) (Drupal CMS)
+Source : job.nc (Drupal CMS)
 
-**Passe 1** — liste paginée des offres récentes :
-- Filtre par date de publication (`days` jours en arrière, défaut 30)
-- Collecte les slugs (`/offres-emploi/{slug}`)
+**Passe 1** — liste paginée, filtre par date de publication (fenêtre `days`)
 
-**Passe 2** — page de détail :
-- Parse HTML BeautifulSoup
-- Extrait le `node_id` depuis les classes CSS `<body class="node-12345 ...">` pour un `external_id` stable
+**Passe 2** — page de détail HTML, extrait `node_id` depuis les classes CSS `<body>`
 
-Format `external_id` : `JOB_NC-{node_id}` (ex. `JOB_NC-98765`)
+Format `external_id` : `JOB_NC-{node_id}`
 
 ---
 
 ### LemploiNCScraper (`scrapers/lemploi_nc.py`)
 
-Source : [lemploi.nc](https://www.lemploi.nc) (Laravel + Inertia.js)
+Source : lemploi.nc (Laravel + Inertia.js)
 
-**Passe 1** — liste paginée :
-- Collecte les slugs depuis les balises `<a href="/offres/{slug}">`
+**Passe 1** — liste paginée, collecte slugs `/offres/{slug}`
 
-**Passe 2** — détail :
-- Source principale : bloc `<script type="application/ld+json">` (JSON-LD `JobPosting`)
-- Complément : sidebar HTML pour le nom de l'entreprise et la localisation
+**Passe 2** — détail via JSON-LD `JobPosting` + sidebar HTML
 
-Format `external_id` : `LEMPLOI_NC-{id}` où `{id}` est le dernier segment numérique du slug
+Format `external_id` : `LEMPLOI_NC-{id}`
+
+---
+
+### InfogreffeScraper (`scrapers/infogreffe_nc.py`)
+
+Source : infogreffe.nc — données légales des entreprises.
+
+Utilisé par l'endpoint `POST /ridet/<rid7>/consolidate/`.
+
+- Recherche par rid7 → retourne dirigeants, adresse, code NAF, activité principale
+- Les dirigeants peuvent être des `personne_physique` **ou** `personne_morale` (entreprises administratrices)
+- Utilise Playwright + Browserless (SPA)
+
+```python
+from iod_job_intel.scrapers.infogreffe_nc import InfogreffeScraper
+
+scraper = InfogreffeScraper()
+data = scraper.fetch(rid7)
+# → {"dirigeants": [...], "adresse": "...", "code_naf": "...", "activite_principale": "..."}
+```
+
+---
+
+### AvisRidetScraper (`scrapers/avisridet_nc.py`)
+
+Source : avisridet.isee.nc — PDF "Avis de situation RIDET".
+
+Utilisé par l'endpoint `POST /ridet/<rid7>/extract-ridet/`.
+
+- Le site est un SPA Next.js — requiert Playwright + Browserless
+- Le PDF est servi via une API interne avec UUID dynamique : on intercepte l'URL de la réponse PDF,
+  puis on la télécharge avec `requests` + cookies de session
+- Le bandeau de consentement cookies est accepté automatiquement avant le clic de téléchargement
+- Le RID7 doit être passé **sur 7 chiffres avec zéros de tête** (`.zfill(7)`) — ne jamais convertir en `int`
+
+```python
+from iod_job_intel.scrapers.avisridet_nc import AvisRidetScraper
+
+scraper = AvisRidetScraper("0038380")
+pdf_text = scraper.run()  # str (texte brut extrait via pdfplumber) ou None si non trouvé
+```
 
 ---
 
@@ -470,55 +573,60 @@ Authentification : JWT Bearer Token (compatible django-crm)
 GET  /api/iod/offers/                   Liste paginée
 GET  /api/iod/offers/{id}/              Détail (avec description)
 GET  /api/iod/offers/{id}/analyses/     Analyses IA liées
+POST /api/iod/offers/{id}/start-action/ Déclencher une analyse IA sur une offre
+POST /api/iod/offers/{id}/classify/     Classifier l'offre (eval_n4…eval_n8)
 ```
 
 **Filtres disponibles :**
 
-| Paramètre  | Exemple               | Description                          |
-|:-----------|:----------------------|:-------------------------------------|
-| `rid7`     | `?rid7=1234567`       | Offres d'une entreprise              |
-| `source`   | `?source=JOB_NC`      | Par source                           |
-| `status`   | `?status=PUBLIEE`     | Par statut                           |
-| `q`        | `?q=développeur`      | Recherche fulltext titre + entreprise|
+| Paramètre     | Exemple               | Description                              |
+|:--------------|:----------------------|:-----------------------------------------|
+| `rid7`        | `?rid7=1234567`       | Offres d'une entreprise                  |
+| `source`      | `?source=JOB_NC`      | Par source                               |
+| `status`      | `?status=PUBLIEE`     | Par statut                               |
+| `q`           | `?q=développeur`      | Recherche fulltext titre + entreprise    |
+| `eval_category` | `?eval_category=eval_n6` | Par catégorie évaluation            |
 
-**Format de réponse liste :**
+**`start-action` — actions disponibles :**
+
 ```json
-{
-  "count": 42,
-  "next": "/api/iod/offers/?offset=10",
-  "previous": null,
-  "results": [
-    {
-      "id": 1,
-      "external_id": "JOB_NC-98765",
-      "source": "JOB_NC",
-      "title": "Développeur Python",
-      "company_name": "TechNC",
-      "rid7": "1234567",
-      "contract_type": "CDI",
-      "score": 50,
-      "status": "NEW",
-      "date_published": "2024-11-15T08:00:00Z",
-      "url_external": "https://www.job.nc/offres-emploi/..."
-    }
-  ]
-}
+{"action": "skill_analysis"}
+{"action": "offer_diagnostic"}
+{"action": "questions_offre"}
+{"action": "questions_company"}
+{"action": "email_job",     "contact_name": "M. Dupont", "language": "French"}
+{"action": "email_general", "contact_name": "M. Dupont", "language": "French"}
+{"action": "ice_breaker"}
 ```
-
-La vue détail ajoute les champs `description`, `experience_req`, `education_req`,
-`skills_json`, `activities_json`.
 
 ---
 
-### Recherche RIDET
+### RIDET
 
 ```
-GET /api/iod/ridet/search/?q=air
+GET  /api/iod/ridet/search/?q=...        Recherche (50 résultats max)
+POST /api/iod/ridet/match/               Résolution nom → rid7
+POST /api/iod/ridet/refresh/             Invalider le cache RidetService
+GET  /api/iod/ridet/<rid7>/              Détail d'un établissement
+POST /api/iod/ridet/<rid7>/consolidate/  Consolider via Infogreffe (dirigeants, adresse)
+POST /api/iod/ridet/<rid7>/extract-ridet/ Consolider via PDF avisridet.isee.nc (LLM)
+GET  /api/iod/ridet/<rid7>/crm-account/  Lien vers le compte CRM django-crm
+POST /api/iod/ridet/<rid7>/ai/<action>/  Analyses IA sur l'entreprise
 ```
+
+**Actions IA disponibles sur `/ridet/<rid7>/ai/<action>/` :**
+
+| Action              | Prompt utilisé                 | Description                         |
+|:--------------------|:-------------------------------|:------------------------------------|
+| `questions_company` | `questions_brulantes_company`  | 7 questions brûlantes organisationnelles |
+| `email_general`     | `email_prospect_general`       | Email de prospection général        |
+| `ice_breaker`       | `ice_breaker`                  | Phrase d'accroche                   |
+
+**Recherche RIDET :**
 
 - Paramètre `q` obligatoire, minimum 2 caractères
 - Recherche dans `denomination`, `enseigne`, `sigle`
-- Retourne jusqu'à 20 résultats (tableau JSON, pas de pagination)
+- Retourne jusqu'à **50** résultats
 
 ```json
 [
@@ -535,25 +643,6 @@ GET /api/iod/logs/              50 derniers journaux
 GET /api/iod/logs/?source=PSUD  Filtré par source
 ```
 
-```json
-{
-  "count": 12,
-  "results": [
-    {
-      "id": 5,
-      "source": "GOUV_NC",
-      "started_at": "2024-11-15T06:00:00Z",
-      "finished_at": "2024-11-15T06:00:45Z",
-      "status": "SUCCESS",
-      "offers_imported": 23,
-      "offers_skipped": 17,
-      "duration_seconds": 45,
-      "error_message": ""
-    }
-  ]
-}
-```
-
 ---
 
 ### Paramètres de configuration
@@ -564,14 +653,20 @@ GET   /api/iod/parameters/{key}/               Détail
 PATCH /api/iod/parameters/{key}/               Mise à jour valeur
 ```
 
-Les clés peuvent contenir des points (`ai.default_model`, `scraper.limit`).
+Les clés peuvent contenir des points (`ai.model.general`, `scraper.gouv_nc.limit`).
 
 ```bash
-# Exemple : changer le modèle Ollama par défaut
-curl -X PATCH /api/iod/parameters/ai.default_model/ \
+# Définir le modèle général
+curl -X PATCH /api/iod/parameters/ai.model.general/ \
      -H "Authorization: Bearer <token>" \
      -H "Content-Type: application/json" \
      -d '{"value": "qwen3:latest"}'
+
+# Définir le modèle classificateur
+curl -X PATCH /api/iod/parameters/ai.model.classifier/ \
+     -H "Authorization: Bearer <token>" \
+     -H "Content-Type: application/json" \
+     -d '{"value": "ministral-3b-cloud"}'
 ```
 
 ---
@@ -589,8 +684,6 @@ POST /api/iod/sync/trigger/
   "days": 7
 }
 ```
-
-Exécution **synchrone** (bloquante). À terme, sera remplacée par une tâche Celery.
 
 ---
 
@@ -620,14 +713,6 @@ python manage.py run_sync --sources GOUV_NC PSUD
 python manage.py run_sync --sources GOUV_NC --limit 50
 python manage.py run_sync --sources JOB_NC --days 14
 ```
-
-**Options :**
-
-| Option       | Défaut          | Description                              |
-|:-------------|:----------------|:-----------------------------------------|
-| `--sources`  | toutes          | Noms des sources à activer               |
-| `--limit`    | (AppParameter)  | Nombre max d'offres pour GOUV_NC         |
-| `--days`     | (AppParameter)  | Fenêtre temporelle pour JOB_NC           |
 
 ---
 
@@ -664,29 +749,46 @@ python manage.py load_prompts --dir /path/to/prompts/
 python manage.py load_prompts --overwrite
 ```
 
-Convention de nommage :
-- `system_*.txt` → `is_system = True`
-- `*.txt` → `is_system = False`
-- Le nom du template = nom du fichier sans extension (ex. `skill_analysis.txt` → slug `skill_analysis`)
+> En production, les prompts sont seedés via des **data migrations** Django. `load_prompts` est
+> un outil de développement. Ne pas l'utiliser pour pousser des prompts modifiés — créer une
+> migration à la place.
+
+---
+
+### `seed_eval_products` — Créer les produits évaluation
+
+```bash
+python manage.py seed_eval_products
+```
+
+Crée (ou met à jour) les produits CRM correspondant aux catégories d'évaluation `eval_n4`…`eval_n8`
+dans django-crm. À exécuter une fois lors du premier déploiement.
+
+> Utilise `get_set_context_sql()` pour définir le contexte RLS avant les écritures.
 
 ---
 
 ## 8. Templates de prompts
 
-Les prompts sont stockés dans `iod_job_intel/prompts/` et chargés en base via `load_prompts`.
-Une fois en base, ils sont modifiables depuis l'interface d'administration Django sans redéploiement.
+Les prompts sont définis dans `iod_job_intel/prompts/` et seedés en base via des **data migrations**.
+Une fois en base, ils sont modifiables via l'interface d'administration Django sans redéploiement.
 
-| Fichier                        | Usage                                       | Variables                                              |
-|:-------------------------------|:--------------------------------------------|:-------------------------------------------------------|
-| `skill_analysis.txt`           | Analyse des 3 compétences critiques         | `{title}`, `{experience}`, `{skills}`, `{language}`   |
-| `offer_diagnostic.txt`         | Diagnostic qualitatif de l'offre            | `{title}`, `{description}`, `{contract}`, `{language}`|
-| `questions_brulantes_offre.txt`| 7 questions sur les compétences requises    | `{title}`, `{experience}`, `{education}`, `{language}`|
-| `questions_brulantes.txt`      | 7 questions sur la capacité organisationnelle| `{company}`, `{activity}`, `{language}`              |
-| `email_prospect_job.txt`       | Email de prospection (offre spécifique)     | `{title}`, `{source}`, `{contact_name}`, `{questions_brulantes}`, `{language}` |
-| `email_prospect_general.txt`   | Email de prospection (entreprise)           | `{company}`, `{activity}`, `{contact_name}`, `{language}` |
-| `ice_breaker.txt`              | Phrase d'accroche email                     | `{company}`, `{activity}`, `{language}`               |
-| `system_R6_I6_skills.txt`      | System prompt — 6 compétences individuelles | *(system prompt, pas de variables)*                   |
-| `system_R6_O6_capacities.txt`  | System prompt — 6 capacités organisationnelles | *(system prompt, pas de variables)*              |
+**Règle importante** : tout nouveau prompt ou renommage doit faire l'objet d'une migration de données
+(`RunPython`) qui met à jour le `PromptTemplate` en base. Ne pas hardcoder de prompts dans le code Python.
+
+| Fichier                          | Slug en base                     | Usage                                                  | Variables principales                                          |
+|:---------------------------------|:---------------------------------|:-------------------------------------------------------|:---------------------------------------------------------------|
+| `skill_analysis.txt`             | `skill_analysis`                 | 3 compétences critiques                                | `{title}`, `{experience}`, `{skills}`, `{language}`           |
+| `offer_diagnostic.txt`           | `offer_diagnostic`               | Diagnostic qualitatif de l'offre                       | `{title}`, `{description}`, `{language}`                      |
+| `classify_offer.txt`             | `classify_offer`                 | Classification eval_n4…eval_n8 (JSON)                  | `{context}`                                                    |
+| `extract_ridet_pdf.txt`          | `extract_ridet_pdf`              | Extraction structurée d'un PDF Avis RIDET (JSON)       | `{pdf_text}`                                                   |
+| `questions_brulantes_company.txt`| `questions_brulantes_company`    | 7 questions brûlantes sur la capacité organisationnelle| `{title}`, `{description}`, `{company_context}`, `{language}` |
+| `questions_brulantes_offre.txt`  | `questions_brulantes_offre`      | 7 questions brûlantes sur les compétences requises     | `{title}`, `{education}`, `{description}`, `{skills}`, `{activities}`, `{company_context}`, `{language}` |
+| `email_prospect_job.txt`         | `email_prospect_job`             | Email de prospection (offre spécifique)                | `{title}`, `{source}`, `{contact_name}`, `{questions_brulantes}`, `{language}` |
+| `email_prospect_general.txt`     | `email_prospect_general`         | Email de prospection (entreprise)                      | `{company_name}`, `{contact_name}`, `{questions_brulantes}`, `{language}` |
+| `ice_breaker.txt`                | `ice_breaker`                    | Phrase d'accroche email                                | `{company_name}`, `{job_title}`, `{language}`                 |
+| `system_R6_I6_skills.txt`        | `system_R6_I6_skills`            | System prompt — 6 compétences individuelles            | *(system prompt, pas de variables)*                           |
+| `system_R6_O6_capacities.txt`    | `system_R6_O6_capacities`        | System prompt — 6 capacités organisationnelles         | *(system prompt, pas de variables)*                           |
 
 ---
 
@@ -696,10 +798,13 @@ Une fois en base, ils sont modifiables depuis l'interface d'administration Djang
 
 ```
 Python 3.12+
-beautifulsoup4==4.12.3  (déjà dans requirements.txt)
-pyyaml==6.0.2           (déjà dans requirements.txt)
-requests                (déjà dans requirements.txt via djangorestframework)
-Ollama                  (serveur local, https://ollama.com)
+beautifulsoup4==4.12.3
+pyyaml==6.0.2
+requests
+pdfplumber==0.11.4        # extraction texte PDF
+playwright                # scraping SPA (Browserless requis en Docker)
+Ollama cloud              # OLLAMA_CLOUD_URL + OLLAMA_API_KEY
+Browserless               # service Docker pour Playwright (ws://browserless:3000)
 ```
 
 ### Étape 1 — INSTALLED_APPS
@@ -728,85 +833,81 @@ urlpatterns = [
 
 ### Étape 3 — Variables d'environnement
 
-Dans `.env` (ou `.env.docker`) :
+Dans `.env.docker` :
 
 ```dotenv
-OLLAMA_CLOUD_URL
-OLLAMA_DEFAULT_MODEL=llama3.2:latest
-OLLAMA_TIMEOUT=60
+OLLAMA_CLOUD_URL=https://your-ollama-cloud-endpoint/api/generate
+OLLAMA_API_KEY=your-api-key
+OLLAMA_TIMEOUT=300
+BROWSERLESS_WS=ws://browserless:3000
 ```
 
-Dans `crm/settings.py` (déjà ajouté) :
+Dans `crm/settings.py` :
 
 ```python
-OLLAMA_CLOUD_URL      = os.environ.get("OLLAMA_CLOUD_URL", "")
-OLLAMA_DEFAULT_MODEL = os.environ.get("OLLAMA_DEFAULT_MODEL", "llama3.2:latest")
-OLLAMA_TIMEOUT       = int(os.environ.get("OLLAMA_TIMEOUT", "60"))
+OLLAMA_CLOUD_URL = os.environ.get("OLLAMA_CLOUD_URL", "")
+OLLAMA_API_KEY   = os.environ.get("OLLAMA_API_KEY", "")
+OLLAMA_TIMEOUT   = int(os.environ.get("OLLAMA_TIMEOUT", "300"))
+BROWSERLESS_WS   = os.environ.get("BROWSERLESS_WS", "ws://browserless:3000")
 ```
 
 ### Étape 4 — Migrations
 
 ```bash
-python manage.py makemigrations iod_job_intel
-python manage.py migrate
-```
-
-Ou depuis Docker :
-
-```bash
-docker exec django-crm-backend-1 python manage.py makemigrations iod_job_intel
 docker exec django-crm-backend-1 python manage.py migrate
 ```
+
+Les migrations de données seedent automatiquement les prompts en base.
 
 ### Étape 5 — Données initiales
 
 ```bash
-# Charger les prompts depuis les fichiers .txt
-python manage.py load_prompts
+# Charger le référentiel RIDET
+docker exec django-crm-backend-1 python manage.py load_ridet --url
 
-# Charger le référentiel RIDET (choisir une méthode)
-python manage.py load_ridet --url           # depuis data.gouv.nc
-python manage.py load_ridet --csv ridet.csv # depuis fichier local
+# Créer les produits évaluation (une fois)
+docker exec django-crm-backend-1 python manage.py seed_eval_products
 ```
 
-### Étape 6 — Premier test de scraping
+### Étape 6 — Paramètres obligatoires
+
+Depuis l'admin ou l'API, créer les deux paramètres AI :
 
 ```bash
-# Tester avec 10 offres GOUV_NC (source la plus fiable)
-python manage.py run_sync --sources GOUV_NC --limit 10
+# Via l'API
+curl -X PATCH /api/iod/parameters/ai.model.general/ \
+     -H "Authorization: Bearer <token>" \
+     -d '{"value": "qwen3:latest"}'
+
+curl -X PATCH /api/iod/parameters/ai.model.classifier/ \
+     -H "Authorization: Bearer <token>" \
+     -d '{"value": "ministral-3b-cloud"}'
 ```
 
-Vérifier dans l'admin Django (`/admin/iod_job_intel/`) que les offres apparaissent.
+### Étape 7 — Premier test de scraping
+
+```bash
+docker exec django-crm-backend-1 python manage.py run_sync --sources GOUV_NC --limit 10
+```
 
 ---
 
 ## 10. Configuration
 
-### Variables prioritaires
-
-La résolution d'un paramètre suit cet ordre :
+### Résolution des paramètres (ordre de priorité)
 
 1. `AppParameter` (base de données) — modifiable à chaud via admin ou API
 2. `django.conf.settings` (settings.py + variables d'environnement)
 3. Valeur par défaut codée dans le service
 
-### Gestion via l'admin Django
+### Discipline de configuration des prompts
 
-L'interface d'administration (`/admin/iod_job_intel/appparameter/`) permet de modifier
-les paramètres sans redémarrage.
+1. Écrire le prompt dans `iod_job_intel/prompts/<slug>.txt`
+2. Créer une migration de données `RunPython` qui seed/met à jour le `PromptTemplate` en base
+3. Mettre à jour `AIService._read_prompt()` si un slug change (renommage)
+4. En cas de renommage : migration qui update le `name` en base + mise à jour du code Python
 
-### Gestion via l'API
-
-```bash
-# Voir tous les paramètres
-curl /api/iod/parameters/ -H "Authorization: Bearer <token>"
-
-# Modifier le modèle Ollama
-curl -X PATCH /api/iod/parameters/ai.default_model/ \
-     -H "Authorization: Bearer <token>" \
-     -H "Content-Type: application/json" \
-     -d '{"value": "qwen3:latest"}'
-```
+**Ne jamais** hardcoder un prompt directement dans le code Python.
 
 ---
 
@@ -827,37 +928,10 @@ DJANGO_SETTINGS_MODULE=crm.test_settings python -m pytest iod_job_intel/tests/ -
 
 ```
 tests/
-├── test_models.py    # 5 classes, ~25 tests — création, contraintes, méthodes de classe
+├── test_models.py    # Création, contraintes, méthodes de classe
 ├── test_services.py  # AnalysisService (score), RidetService (cache), AIService (mock Ollama)
 └── test_api.py       # API REST complète — auth, filtres, pagination, détail, actions
 ```
-
-### Ce qui est testé
-
-**`test_models.py`** :
-- `TestJobOffer` — création minimale, déduplication `(external_id, source)`, champ `skills_json`, `__str__`
-- `TestRidetEntry` — création, contrainte `unique rid7`
-- `TestAppParameter` — `get()`, `get_int()`, valeurs manquantes
-- `TestScrapeLog` — `finalize()` succès et erreur
-- `TestAIAnalysis` — liaison à une offre ou à un rid7
-- `TestPromptTemplate` — system prompts
-
-**`test_services.py`** :
-- `TestAnalysisService` — calcul du score pour chaque critère et combinaisons, intensité de recrutement
-- `TestRidetService` — résolution par denomination et enseigne, casse, noms génériques ignorés, invalidation du cache
-- `TestAIServicePrompts` — `analyze_offer`, `generate_email`, retry réseau (mock `requests.post`)
-
-**`test_api.py`** :
-- `TestJobOfferAPI` — liste, détail, filtres `rid7`/`source`/`q`, séparateur list/detail (champ `description`), sous-ressource `/analyses/`
-- `TestRidetSearchAPI` — auth, validation `q`, résultats
-- `TestScrapeLogAPI` — liste, filtre source
-- `TestAppParameterAPI` — liste, récupération par clé dotted, mise à jour PATCH
-
-### Configuration pytest
-
-Les tests utilisent `crm.test_settings` (SQLite en mémoire, pas de PostgreSQL, pas de Redis).
-La fixture `admin_client` (définie dans `conftest.py` du projet) fournit un `APIClient` DRF
-avec un token JWT valide incluant le contexte d'organisation.
 
 ---
 
@@ -870,10 +944,8 @@ Signal personnalisé émis après la création d'une nouvelle offre **avec un ri
 ```python
 from iod_job_intel.signals import job_offer_created
 
-# S'abonner depuis une autre app (ex. dans accounts/apps.py)
 @receiver(job_offer_created)
 def on_new_offer(sender, job_offer_id, rid7, title, company_name, score, **kwargs):
-    # Exemple : créer une activité dans le CRM pour l'Account correspondant
     account = Account.objects.filter(ridet=rid7).first()
     if account:
         Activity.objects.create(
@@ -881,17 +953,6 @@ def on_new_offer(sender, job_offer_id, rid7, title, company_name, score, **kwarg
             note=f"Nouvelle offre détectée : {title} (score {score})",
         )
 ```
-
-**Payload du signal :**
-
-| Argument       | Type  | Description                        |
-|:---------------|:------|:-----------------------------------|
-| `job_offer_id` | int   | PK de l'offre créée                |
-| `rid7`         | str   | RIDET de l'entreprise              |
-| `title`        | str   | Intitulé du poste                  |
-| `company_name` | str   | Nom de l'entreprise                |
-| `score`        | int   | Score de priorité calculé          |
-| `source`       | str   | Source de l'offre                  |
 
 ---
 
@@ -901,12 +962,11 @@ def on_new_offer(sender, job_offer_id, rid7, title, company_name, score, **kwarg
 
 ```bash
 # Migrations
-docker exec django-crm-backend-1 python manage.py makemigrations iod_job_intel
 docker exec django-crm-backend-1 python manage.py migrate
 
 # Données initiales
-docker exec django-crm-backend-1 python manage.py load_prompts
 docker exec django-crm-backend-1 python manage.py load_ridet --url
+docker exec django-crm-backend-1 python manage.py seed_eval_products
 
 # Scraping
 docker exec django-crm-backend-1 python manage.py run_sync --sources GOUV_NC --limit 10
@@ -918,17 +978,25 @@ docker exec django-crm-backend-1 python -m pytest iod_job_intel/tests/ -v --no-c
 
 ### Endpoints API résumés
 
-| Méthode | URL                             | Description                        |
-|:--------|:--------------------------------|:-----------------------------------|
-| GET     | `/api/iod/offers/`              | Liste des offres (paginée)         |
-| GET     | `/api/iod/offers/{id}/`         | Détail d'une offre                 |
-| GET     | `/api/iod/offers/{id}/analyses/`| Analyses IA de l'offre             |
-| GET     | `/api/iod/analyses/`            | Liste des analyses IA              |
-| GET     | `/api/iod/ridet/search/?q=...`  | Recherche établissement RIDET      |
-| GET     | `/api/iod/logs/`                | Journaux de scraping               |
-| GET     | `/api/iod/parameters/`          | Paramètres de configuration        |
-| PATCH   | `/api/iod/parameters/{key}/`    | Modifier un paramètre              |
-| POST    | `/api/iod/sync/trigger/`        | Déclencher un scraping             |
+| Méthode | URL                                      | Description                             |
+|:--------|:-----------------------------------------|:----------------------------------------|
+| GET     | `/api/iod/offers/`                       | Liste des offres (paginée)              |
+| GET     | `/api/iod/offers/{id}/`                  | Détail d'une offre                      |
+| GET     | `/api/iod/offers/{id}/analyses/`         | Analyses IA de l'offre                  |
+| POST    | `/api/iod/offers/{id}/start-action/`     | Déclencher une analyse IA               |
+| POST    | `/api/iod/offers/{id}/classify/`         | Classifier l'offre (eval_n4…n8)         |
+| GET     | `/api/iod/ridet/search/?q=...`           | Recherche établissement RIDET (50 max)  |
+| POST    | `/api/iod/ridet/match/`                  | Résolution nom → rid7                   |
+| GET     | `/api/iod/ridet/<rid7>/`                 | Détail d'un établissement               |
+| POST    | `/api/iod/ridet/<rid7>/consolidate/`     | Consolider via Infogreffe               |
+| POST    | `/api/iod/ridet/<rid7>/extract-ridet/`   | Consolider via PDF avisridet.isee.nc    |
+| GET     | `/api/iod/ridet/<rid7>/crm-account/`     | Lien vers le compte CRM                 |
+| POST    | `/api/iod/ridet/<rid7>/ai/<action>/`     | Analyse IA sur l'entreprise             |
+| GET     | `/api/iod/analyses/`                     | Liste des analyses IA                   |
+| GET     | `/api/iod/logs/`                         | Journaux de scraping                    |
+| GET     | `/api/iod/parameters/`                   | Paramètres de configuration             |
+| PATCH   | `/api/iod/parameters/{key}/`             | Modifier un paramètre                   |
+| POST    | `/api/iod/sync/trigger/`                 | Déclencher un scraping                  |
 
 ### Modèles résumés
 
@@ -940,3 +1008,4 @@ docker exec django-crm-backend-1 python -m pytest iod_job_intel/tests/ -v --no-c
 | `PromptTemplate`| Template de prompt Ollama             | `name` (slug)            |
 | `ScrapeLog`     | Journal de scraping                   | `(source, started_at)`   |
 | `AppParameter`  | Configuration clé/valeur              | `key`                    |
+| `JobSource`     | Sources d'offres (admin-éditable)     | `code`                   |

@@ -49,6 +49,16 @@ class AIAnalysisType(models.TextChoices):
     EMAIL_JOB         = "email_job",         "Email prospection (offre)"
     EMAIL_GENERAL     = "email_general",     "Email prospection (général)"
     ICE_BREAKER       = "ice_breaker",       "Ice breaker"
+    EVAL_CATEGORY     = "eval_category",     "Catégorie évaluation"
+
+
+EVAL_CATEGORY_LABELS = {
+    "eval_n4": "Personnels d'exécution",
+    "eval_n5": "Techniciens, agents de maîtrise",
+    "eval_n6": "Managers opérationnels",
+    "eval_n7": "Cadres supérieurs",
+    "eval_n8": "Dirigeants / Executive",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +100,9 @@ class JobOffer(models.Model):
     )
     score = models.PositiveSmallIntegerField(default=0)
 
+    # Classification évaluation (remplie par le LLM classificateur)
+    eval_category = models.CharField(max_length=10, blank=True, db_index=True)
+
     # Pivot vers django-crm (liaison faible — pas de FK)
     rid7         = models.CharField(max_length=20, blank=True, db_index=True)
     company_name = models.CharField(max_length=255, blank=True)
@@ -124,13 +137,16 @@ class RidetEntry(models.Model):
     commune           = models.CharField(max_length=100, blank=True)
     province          = models.CharField(max_length=100, blank=True)
     forme_juridique   = models.CharField(max_length=100, blank=True)
-    
+
     # Champs consolidés via Infogreffe.nc
     adresse            = models.TextField(blank=True)
     code_naf           = models.CharField(max_length=10, blank=True)
-    activite_principale = models.CharField(max_length=255, blank=True)
+    activite_principale = models.TextField(blank=True)
     dirigeants         = models.JSONField(default=list, blank=True)
-    
+
+    # Contexte éditorial saisi manuellement (alimente le company_context des analyses IA)
+    description        = models.TextField(blank=True, default="")
+
     updated_at        = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -277,3 +293,39 @@ class AppParameter(models.Model):
             return float(val) if val is not None else default
         except (ValueError, TypeError):
             return default
+
+
+# ---------------------------------------------------------------------------
+# JobSource
+# ---------------------------------------------------------------------------
+
+class JobSource(models.Model):
+    """
+    Source d'offres d'emploi — table admin-éditable.
+    Remplace le tuple LEAD_SOURCE hardcodé pour les sources Job Intel.
+    Chaque entrée correspond à un site de publication d'offres.
+    """
+
+    code    = models.CharField(max_length=20, unique=True, db_index=True,
+                               help_text="Code interne (ex: JOB_NC). Correspond à JobOffer.source.")
+    label   = models.CharField(max_length=100,
+                               help_text="Libellé affiché (ex: Job.nc)")
+    url     = models.URLField(blank=True,
+                              help_text="URL du site source (ex: https://www.job.nc)")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Source d'offres d'emploi"
+        verbose_name_plural = "Sources d'offres d'emploi"
+        ordering = ("label",)
+
+    def __str__(self):
+        return f"{self.label} ({self.code})"
+
+    @classmethod
+    def label_for(cls, code: str, default: str = "") -> str:
+        """Retourne le libellé d'une source par son code (avec cache implicite Django ORM)."""
+        try:
+            return cls.objects.get(code=code).label
+        except cls.DoesNotExist:
+            return default or code

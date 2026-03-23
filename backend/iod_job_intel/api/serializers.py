@@ -9,8 +9,9 @@ class JobOfferSerializer(serializers.ModelSerializer):
         fields = [
             "id", "external_id", "source", "title", "company_name", "rid7",
             "contract_type", "location", "experience_req", "education_req",
-            "nb_postes", "date_published", "status", "score",
+            "nb_postes", "date_published", "status", "score", "eval_category",
             "description", "url_external", "skills_json", "activities_json",
+            "qualification",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
@@ -24,6 +25,7 @@ class JobOfferListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "external_id", "source", "title", "company_name", "rid7",
             "contract_type", "location", "date_published", "status", "score",
+            "eval_category",
         ]
 
 
@@ -42,7 +44,13 @@ class RidetEntrySerializer(serializers.ModelSerializer):
         model  = RidetEntry
         fields = [
             "rid7", "denomination", "sigle", "enseigne", "commune", "province",
-            "forme_juridique", "adresse", "code_naf", "activite_principale", "dirigeants"
+            "forme_juridique", "adresse", "code_naf", "activite_principale",
+            "dirigeants", "description", "updated_at",
+        ]
+        read_only_fields = [
+            "rid7", "denomination", "sigle", "enseigne", "commune", "province",
+            "forme_juridique", "adresse", "code_naf", "activite_principale",
+            "dirigeants", "updated_at",
         ]
 
 

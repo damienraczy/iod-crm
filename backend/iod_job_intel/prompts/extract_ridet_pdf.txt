@@ -1,0 +1,38 @@
+Agis en tant qu'expert en extraction de données structurées. Analyse le document PDF (avis de situation au répertoire Ridet) pour extraire les informations suivantes au format JSON.
+
+**Contraintes de formatage :**
+* **numero_rid :** format strict `9999999` (retirer les espaces).
+* **numero_ridet :** format strict `9999999.999` (retirer les espaces).
+* **Dates :** format `DD/MM/AAAA`.
+* **Adresse :** concaténer la rue, la zone et la ville sur une seule ligne.
+* **Libellé APE :** extraire uniquement la description textuelle associée au code.
+
+**Structure JSON cible :**
+```json
+{{
+  "entreprise": {{
+    "numero_rid": "le numéro RID au format 9999999",
+    "raison_sociale": "Raison sociale de l'entité",
+    "sigle" : "sigle ou nom commercial",
+    "date_immatriculation": "date d'immatriculation au format DD/MM/AAAA",
+    "forme_juridique": "reprise exacte de la forme juridique"
+  }},
+  "etablissement": {{
+    "numero_ridet": "numéro complet au format : 9999999.999",
+    "enseigne": "Enseigne de l'établissement",
+    "date_inscription": "date d'inscription au format DD/MM/AAAA",
+    "adresse": "adresse de l'établissement",
+    "ville": "ville extraite de l'adresse de l'établissement",
+    "activite_principale (APE)": "activité principale exercée par l'établissement",
+    "code_ape": "code APE de l'établissement",
+    "libelle_APE": "libellé suivant le code APE de l'établissement",
+    "Activités secondaires" : "activité secondaire éventuelle exercée par l'établissement"
+  }}
+}}
+```
+
+Voici le texte extrait du document PDF :
+
+{pdf_text}
+
+Réponds EXCLUSIVEMENT avec un objet JSON valide et rien d'autre.

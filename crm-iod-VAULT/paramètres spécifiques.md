@@ -26,3 +26,14 @@ CURRENCY_CODES = (
 
 CURRENCY_SYMBOLS = {
 	"XPF": "F",
+
+dans `frontend/src/lib/utils/formatting.js`, ligne 65
+Mettre currency à XPF
+- export function formatCurrency(amount, currency = 'XPF', compact = false) {
+remplacer `en-US` en `fr-FR` dans intl:
+- Intl.DateTimeFormat(
+- Intl.NumberFormat(
+remplacer `en-US` en `fr-FR` dans intl:
+- dans `frontend/src/routes/(app)/accounts/[id]/+page.svelte`
+- dans `frontend/src/routes/(app)/job-intel/offers/+page.svelte`
+- dans `frontend/src/routes/(app)/settings/organization/+page.svelte`

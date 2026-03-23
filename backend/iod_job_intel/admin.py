@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import AIAnalysis, AppParameter, JobOffer, PromptTemplate, RidetEntry, ScrapeLog
+from .models import AIAnalysis, AppParameter, JobOffer, JobSource, PromptTemplate, RidetEntry, ScrapeLog
 
 
 @admin.register(JobOffer)
@@ -85,3 +85,26 @@ class AppParameterAdmin(admin.ModelAdmin):
     list_display  = ("key", "value", "description", "updated_at")
     search_fields = ("key", "description")
     readonly_fields = ("updated_at",)
+
+
+@admin.register(JobSource)
+class JobSourceAdmin(admin.ModelAdmin):
+    list_display  = ("label", "code", "url", "is_active")
+    list_editable = ("is_active",)
+    search_fields = ("code", "label")
+    ordering      = ("label",)
+
+    def has_module_perms(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser

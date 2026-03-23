@@ -5,12 +5,16 @@ Job Title: {title}
 Required Experience: {experience}
 Key Competencies: {skills}
 
-For each of the 3 skills, provide a brief "Sales Hook" that a consultant can use to explain why a professional evaluation is necessary for this specific role.
+For each of the three skills, provide a brief 'sales hook' that a consultant can use to explain why a professional evaluation is necessary for this specific role, emphasising the behavioural aspect of the skill.
 
 Format the output as a clean JSON object with the following structure:
 {{
     "critical_skills": [
-        {{"skill": "name", "reason": "why it's hard to assess", "sales_hook": "the hook"}}
+    	{{
+		"skill": "name", 
+		"reason": "why it's hard to assess",
+		"sales_hook": "the hook"
+	}}
     ]
 }}
 ONLY return the JSON object, no preamble.
